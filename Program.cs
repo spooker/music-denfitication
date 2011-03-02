@@ -192,7 +192,11 @@ namespace Shazam
 
                         byte[] audio = Mp3ToWavConverter.ReadBytesFromMp3(fileInfo.FullName);
                         if (audio.Length < 441000)
+                        {
+                            Console.WriteLine();
+                            sw.WriteLine();
                             continue;
+                        }
                         byte[] audioSegment = new byte[441000];
 
                         for (int i = 0; i < 5; i++)
@@ -230,7 +234,10 @@ namespace Shazam
 
                         byte[] audio = Mp3ToWavConverter.ReadBytesFromMp3(fileInfo.FullName);
                         if (audio.Length < 441000)
+                        {
+                            Console.WriteLine();
                             continue;
+                        }
                         byte[] audioSegment = new byte[441000];
 
                         for (int i = 0; i < 5; i++)
