@@ -64,22 +64,48 @@ namespace Shazam
                 lines[count++] = GetKeyPoints(result);
             }
 
-            using (StreamWriter sw = new StreamWriter(@"D:\Sound\Shazam\Shazam\moumoon-sunshine_girl.log"))
-            {
-                //Write the points to a file:
-                foreach (int[] line in lines)
-                {
-                    for (int i = 0; i < line.Length; i++)
-                    {
-                        sw.Write(string.Format("{0}\t", line[i]));
-                    }
-                    sw.Write("\n");
-                }                
-                sw.Flush();
-            }
-            // ... snip ...            
-
             return lines;
+        }
+
+        public double[][] GetTopMagnitude(Complex[][] results, int n)
+        {
+            double[][] magnitude = new double[results.Length][];
+
+            int count = 0;
+            foreach (Complex[] result in results)
+            {
+                magnitude[count++] = GetTopMagnitude(result, n);
+            }
+
+            return magnitude;
+        }
+
+        public double[] GetTopMagnitude(Complex[] result, int n)
+        {
+            if (n > result.Length)
+                n = result.Length;
+
+            List<double> magnitude = new List<double>(n);
+            foreach (Complex value in result)
+            {                
+                //double mag = Math.Log(value.GetModulus() + 1);
+                double mag = value.GetModulus();
+                if (magnitude.Count < n)
+                    magnitude.Add(mag);
+                else
+                {
+                    int minIndex = 0;
+                    for (int i = 1; i < magnitude.Count; i++)
+                    {
+                        if (magnitude[minIndex] > magnitude[i])
+                            minIndex = i;
+                    }
+                    magnitude[minIndex] = mag;
+                }
+            }
+
+            magnitude.Sort();
+            return magnitude.ToArray();
         }
 
         public int[] GetKeyPoints(Complex[] result)
@@ -88,12 +114,14 @@ namespace Shazam
             double[] highscores = new double[] { 0.0, 0.0, 0.0, 0.0 };
 
             //For every line of data:
+            int index = 0;
             for (int i = Harvester.LOWER_LIMIT; i < Harvester.UPPER_LIMIT; i++)
             {
                 //Get the magnitude:
                 double mag = Math.Log(result[i].GetModulus() + 1);
                 //Find out which range we are in:
-                int index = getIndex(i);
+                if (Harvester.RANGE[index] < i)
+                    index++;
                 //Save the highest magnitude and corresponding frequency:
                 if (mag > highscores[index]) {
                     highscores[index] = mag;
@@ -104,13 +132,27 @@ namespace Shazam
         }
 
         //Using a little bit of error-correction, damping
-        private static int FUZ_FACTOR = 2;
+        private static int FUZ_FACTOR = 0xFFFFFE;
          
         private long Hash(int[] points) {
-            return (points[3] - (points[3] % FUZ_FACTOR)) * (long)100000000 
-                + (points[2] - (points[2] % FUZ_FACTOR)) * (long)100000
-                + (points[1] - (points[1] % FUZ_FACTOR)) * (long)100
-                + (points[0] - (points[0] % FUZ_FACTOR));
+            return (points[3] & FUZ_FACTOR) * (long)100000000
+                + (points[2] & FUZ_FACTOR) * (long)100000
+                + (points[1] & FUZ_FACTOR) * (long)100
+                + (points[0] & FUZ_FACTOR);
+        }
+
+        public void Dump(string fileName, int[][] lines)
+        {
+            using (StreamWriter sw = new StreamWriter(fileName))
+            {
+                foreach (int[] line in lines)
+                {
+                    string str = string.Empty;
+                    foreach (int value in line)
+                        str += string.Format("\t{0}", value);
+                    sw.WriteLine(str);
+                }
+            }
         }
 
         public long[] GetHash(int[][] lines)
