@@ -51,7 +51,7 @@ namespace Shazam
                 string firstArg = args[0].ToLower();
                 if (firstArg.CompareTo("build") == 0)
                 {
-                    BuildDataBase(args[1]);
+                    //(args[1]);
                 }
                 else if (firstArg.CompareTo("test") == 0)
                 {
@@ -79,7 +79,7 @@ namespace Shazam
         private static Thread recorderThread = null;
         public static void Test(string dataFolder)
         {
-            DataBase dataBase = new DataBase();
+            DataBase dataBase = new DataBase(new KeyPointHash());
             if(!dataFolder.EndsWith("\\"))
                 dataFolder += "\\";
             string fileName = "database.txt";
@@ -151,7 +151,7 @@ namespace Shazam
         private static Mp3ToWavConverter converter = new Mp3ToWavConverter();
         private static DataBase Load(string dataFolder)
         {
-            DataBase dataBase = new DataBase();
+            DataBase dataBase = new DataBase(new KeyPointHash());
             if (!dataFolder.EndsWith("\\"))
                 dataFolder += "\\";
             string fileName = "database.txt";
@@ -364,40 +364,6 @@ namespace Shazam
                 //id = GetBestHit(audio, dataBase, 8);
                 int id = GetBestHit(audio, dataBase, 16);
             }
-        }
-
-        public static void BuildDataBase(string dataFolder)
-        {
-            //string dataFolder = @"D:\Sound\Shazam\Shazam\TestData\";
-            if(!dataFolder.EndsWith("\\"))
-                dataFolder += "\\";
-            if(!Directory.Exists(dataFolder))
-                return;
-
-            string dataBaseFileName = "database.txt";
-            DataBase dataBase = new DataBase();
-
-            DirectoryInfo dirInfo = new DirectoryInfo(dataFolder);
-            FileInfo[] files = dirInfo.GetFiles("*.mp3", SearchOption.AllDirectories);
-            Console.WriteLine("There are total {0} songs. Star indexing...", files.Length);
-            int count = 0;
-            foreach (FileInfo file in files)
-            {
-                count++;
-                if (file.FullName.EndsWith(".mp3"))
-                {
-                    Console.WriteLine("Indexing {0}: {1}..", count, file.Name);
-                    dataBase.AddNewSong(file.FullName);
-                }
-
-                if (count % 100 == 0)
-                {
-                    Console.WriteLine("Saving index to the file.");
-                    dataBase.Save(dataFolder + dataBaseFileName);
-                }
-            }
-            Console.WriteLine("Indexing done. Saving to the file.");
-            dataBase.Save(dataFolder + dataBaseFileName);
         }
 
         private static FileInfo[] GetAllMp3Files(string dataFolder)

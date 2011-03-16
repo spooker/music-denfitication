@@ -5,32 +5,59 @@ using System.Text;
 using System.IO;
 using Exocortex.DSP;
 using System.Diagnostics;
+using System.Drawing;
 
 namespace Shazam
 {
-    class DataBase
+    public class DataBase
     {
         private List<string> songNames = new List<string>();
-        private Dictionary<long, List<DataPoint>> hashMap = new Dictionary<long, List<DataPoint>>();
-        Mp3ToWavConverter converter = new Mp3ToWavConverter();
-        PointsFinder pointFinder = new PointsFinder();
+        private Dictionary<long, List<DataPoint>> hashMap = new Dictionary<long, List<DataPoint>>();        
+        IHashMaker hashMaker;
 
+        public DataBase(IHashMaker hasher)
+        {
+            hashMaker = hasher;
+        }
+        private long[] GetAudioHash(byte[] audio)
+        {
+            Complex[][] results = FFT(audio, hashMaker.ChunkSize);
+            return hashMaker.GetHash(results);
+        }                
+        public static Complex[][] FFT(byte[] audio, int chunkSize)
+        {
+            int totalSize = audio.Length;
+            int amountPossible = totalSize / chunkSize;
+
+            //When turning into frequency domain we'll need complex numbers:
+            Complex[][] results = new Complex[amountPossible][];
+            //For all the chunks:
+            for (int i = 0; i < amountPossible; i++)
+            {
+                Complex[] complex = new Complex[chunkSize];
+                for (int start = i * chunkSize, j = 0;
+                     j < chunkSize;
+                     j++)
+                {
+                    //Put the time domain data into a complex number with imaginary part as 0:
+                    complex[j] = new Complex(audio[start + j], 0);
+                }
+                //Complex[] tmpRs = FFT1.fft(complex);
+
+                //Perform FFT analysis on the chunk:
+                Fourier.FFT(complex, complex.Length, FourierDirection.Forward);
+                results[i] = complex;
+
+            }
+            return results;
+        }
         public string GetNameByID(int id)
         {
             if (id < 0 || id >= songNames.Count)
                 throw new ArgumentOutOfRangeException("id");
 
             return songNames[id];
-        }
-                
-        private long[] GetAudioHash(byte[] audio)
-        {
-            Complex[][] results = pointFinder.FFT(audio);
-            int[][] lines = pointFinder.GetKeyPoints(results);
-            long[] hashes = pointFinder.GetHash(lines);
-            return hashes;
-        }
-
+        }                
         public void AddNewSong(string filePath)
         {
             try
@@ -48,6 +75,109 @@ namespace Shazam
                 Console.WriteLine("{0} is not added to the database.", filePath);
             }
         }
+        private void AddHash(int songID, long[] hashes)
+        {
+            for (int i = 0, size = hashes.Length; i < size; i++)
+            {
+                long hash = hashes[i];
+                List<DataPoint> pointList = null;
+                if (hashMap.ContainsKey(hash))
+                    pointList = hashMap[hash];
+                else
+                {
+                    pointList = new List<DataPoint>();
+                    hashMap.Add(hash, pointList);
+                }
+
+                pointList.Add(new DataPoint(i, songID));
+            }
+        }
+        public void Save(string fileName)
+        {
+            using (StreamWriter sw = new StreamWriter(fileName, false))
+            {
+                sw.WriteLine(songNames.Count);
+                foreach (string name in songNames)
+                {
+                    sw.WriteLine(name);
+                }
+
+                sw.WriteLine(hashMap.Count);
+                Dictionary<long, List<DataPoint>>.Enumerator en = hashMap.GetEnumerator();
+                while (en.MoveNext())
+                {
+                    KeyValuePair<long, List<DataPoint>> current = en.Current;
+                    sw.Write(current.Key);
+                    foreach (DataPoint dataPoint in current.Value)
+                    {
+                        sw.Write(string.Format("\t{0},{1}", dataPoint.Time, dataPoint.SongID));
+                    }
+                    sw.WriteLine();
+                }
+                sw.Flush();
+            }
+        }
+        public void Load(string fileName)
+        {
+            using (StreamReader sr = new StreamReader(fileName))
+            {
+                songNames.Clear();
+                int nameCount = int.Parse(sr.ReadLine());
+                for (int i = 0; i < nameCount; i++)
+                {
+                    songNames.Add(sr.ReadLine());
+                }
+
+                hashMap.Clear();
+                int hashCount = int.Parse(sr.ReadLine());
+                for (int i = 0; i < hashCount; i++)
+                {
+                    string record = sr.ReadLine();
+                    string[] items = record.Split('\t');
+
+                    long hash = long.Parse(items[0]);
+                    List<DataPoint> pointList = new List<DataPoint>();
+                    for (int j = 1; j < items.Length; j++)
+                    {
+                        string[] values = items[j].Split(',');
+                        int time = int.Parse(values[0]);
+                        int songID = int.Parse(values[1]);
+                        DataPoint dataPoint = new DataPoint(time, songID);
+                        pointList.Add(dataPoint);
+                    }
+
+                    hashMap.Add(hash, pointList);
+                }
+            }
+        }
+        public void BuildDataBase(string dataFolder)
+        {
+            if (!dataFolder.EndsWith("\\"))
+                dataFolder += "\\";
+            if (!Directory.Exists(dataFolder))
+                return;
+
+            String tmpFileName = Path.GetTempFileName();
+
+            FileInfo[] files = Utility.GetFiles(dataFolder, "*.mp3");
+            Console.WriteLine("There are total {0} songs. Star indexing...", files.Length);
+            int count = 0;
+            foreach (FileInfo file in files)
+            {
+                count++;
+                Console.WriteLine("Indexing {0}: {1}..", count, file.Name);
+                AddNewSong(file.FullName);
+
+                if (count % 100 == 0)
+                {
+                    Console.WriteLine("Saving index to tmp file:" + tmpFileName);
+                    Save(tmpFileName);
+                }
+            }
+            Console.WriteLine("Indexing done. Saving to the file.");
+            File.Delete(tmpFileName);
+        }
+        
         public Dictionary<int, List<int>> IndexSong(byte[] audio)
         {
             Dictionary<int, List<int>> results = new Dictionary<int, List<int>>();
@@ -75,7 +205,6 @@ namespace Shazam
 
             return results;
         }
-
         public void GetBestHitByHitCount(Dictionary<int, List<int>> results, bool bPrintCandidates)
         {
             IOrderedEnumerable<KeyValuePair<int, List<int>>> oe = results.OrderBy(x => (x.Value.Count) * -1); 
@@ -106,7 +235,6 @@ namespace Shazam
             int score = 0;
             return GetBestHitBySpanMatch(results, ref score, bPrintCandidates);
         }
-
         public int GetBestHitBySpanMatch(Dictionary<int, List<int>> results, ref int score, bool bPrintCandidates)
         {
             List<KeyValuePair<int, int>> bestHit = GetBestNHitBySpanMatch(results, 1, bPrintCandidates);
@@ -120,7 +248,6 @@ namespace Shazam
 
             return bestID;
         }
-
         public List<KeyValuePair<int, int>> GetBestNHitBySpanMatch(Dictionary<int, List<int>> results, int n, bool bPrintCandidates)
         {
             List<KeyValuePair<int, int>> countID = new List<KeyValuePair<int, int>>();
@@ -170,7 +297,6 @@ namespace Shazam
 
             return bestHit;
         }
-
         private void PrintCountSpan(List<KeyValuePair<int, int>> countSpan)
         {
             if(countSpan == null)
@@ -183,7 +309,6 @@ namespace Shazam
             }
             Console.WriteLine();
         }
-
         public void Print(Dictionary<int, List<int>> results)
         {
             Console.WriteLine(">>>>>");
@@ -210,8 +335,6 @@ namespace Shazam
                 count++;
             }
         }
-
-
         private List<KeyValuePair<int, int>> GetBestTwoSpan(List<int> timeSpans)
         {
             List<KeyValuePair<int, int>> countSpan = new List<KeyValuePair<int, int>>();
@@ -250,82 +373,5 @@ namespace Shazam
             return countSpan;
         }
 
-        private void AddHash(int songID, long[] hashes)
-        { 
-            for(int i = 0, size = hashes.Length; i < size; i++)
-            {
-                long hash = hashes[i];
-                List<DataPoint> pointList = null;
-                if(hashMap.ContainsKey(hash))
-                    pointList = hashMap[hash];
-                else
-                {
-                    pointList = new List<DataPoint>();
-                    hashMap.Add(hash, pointList);
-                }
-
-                pointList.Add(new DataPoint(i, songID));
-            }
-        }
-
-        public void Save(string fileName)
-        {
-            using (StreamWriter sw = new StreamWriter(fileName, false))
-            {
-                sw.WriteLine(songNames.Count);
-                foreach (string name in songNames)
-                {
-                    sw.WriteLine(name);
-                }
-
-                sw.WriteLine(hashMap.Count);
-                Dictionary<long, List<DataPoint>>.Enumerator en = hashMap.GetEnumerator();
-                while(en.MoveNext())
-                {
-                    KeyValuePair<long, List<DataPoint>> current = en.Current;
-                    sw.Write(current.Key);
-                    foreach (DataPoint dataPoint in current.Value)
-                    {
-                        sw.Write(string.Format("\t{0},{1}", dataPoint.Time, dataPoint.SongID));
-                    }
-                    sw.WriteLine();
-                }
-                sw.Flush();
-            }
-        }
-
-        public void Load(string fileName)
-        {
-            using (StreamReader sr = new StreamReader(fileName))
-            {
-                songNames.Clear();
-                int nameCount = int.Parse(sr.ReadLine());
-                for (int i = 0; i < nameCount; i++ )
-                {
-                    songNames.Add(sr.ReadLine());
-                }
-
-                hashMap.Clear();
-                int hashCount = int.Parse(sr.ReadLine());
-                for (int i = 0; i < hashCount; i++)
-                { 
-                    string record = sr.ReadLine();
-                    string[] items = record.Split('\t');
-
-                    long hash = long.Parse(items[0]);
-                    List<DataPoint> pointList = new List<DataPoint>();
-                    for (int j = 1; j < items.Length; j++)
-                    {
-                        string[] values = items[j].Split(',');
-                        int time = int.Parse(values[0]);
-                        int songID = int.Parse(values[1]);
-                        DataPoint dataPoint = new DataPoint(time, songID);
-                        pointList.Add(dataPoint);
-                    }
-
-                    hashMap.Add(hash, pointList);
-                }
-            }
-        }
     }
 }
