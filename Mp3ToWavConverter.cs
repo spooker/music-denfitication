@@ -11,7 +11,7 @@ namespace Shazam
 {
     class Mp3ToWavConverter
     { 
-        public void Convert(string mp3File, string wavFile)
+        public static void Convert(string mp3File, string wavFile)
         {
             using (WmaStream str = new WmaStream(mp3File, new WaveFormat(44100, 8, 1))) 
             {
@@ -45,7 +45,7 @@ namespace Shazam
             }
         }
 
-        static public byte[] ReadBytesFromMp3(string mp3File)
+        public static byte[] ReadBytesFromMp3(string mp3File)
         {
             List<byte> bytes = new List<byte>();
             try
@@ -76,7 +76,7 @@ namespace Shazam
             return bytes.ToArray();
         }
 
-        static public byte[] ReadBytesFromWav(string wavFile)
+        public static byte[] ReadBytesFromWav(string wavFile)
         {
             List<byte> bytes = new List<byte>();
             using (WaveStream str = new WaveStream(wavFile))
