@@ -119,7 +119,7 @@ namespace Shazam
                         Array.Copy(audio, offSet, tmp, 0, length);
                         //Console.WriteLine(">>>>>>>>>>>>>>Offset is {0}<<<<<<<<<<<<<<<", offSet);
                         //Console.WriteLine("Start indexing the song in database...");
-                        Dictionary<int, List<int>> results = dataBase.IndexSong(tmp);
+                        Dictionary<int, List<int>> results = dataBase.IndexSong(tmp, 0, tmp.Length);
                         //Console.WriteLine("Indexing done. Printing the result..");
                         //dataBase.Print(results);
                         //dataBase.GetBestHitByHitCount(results, false);
@@ -160,21 +160,17 @@ namespace Shazam
             Console.WriteLine("Loading database done.");
             return dataBase;
         }
-
-
-
         private static Random random = new Random();
         private static int GetRandomStartIndex(int length)
         {
             int value = random.Next(length - 441000);
             return value;
         }
-
         public static void AutoTest(string dataFolder, bool loadIndex)
         {
             DataBase dataBase = Load(dataFolder);
 
-            FileInfo[] fileInfoArray = GetAllMp3Files(dataFolder);
+            FileInfo[] fileInfoArray = Utility.GetFiles(dataFolder, "*.mp3");
 
             int bSuccessCount = 0;
             int total = fileInfoArray.Length;
@@ -276,7 +272,7 @@ namespace Shazam
                 tmp = new byte[audio.Length - i];
                 Array.Copy(audio, i, tmp, 0, tmp.Length);                
 
-                Dictionary<int, List<int>> results = dataBase.IndexSong(tmp);
+                Dictionary<int, List<int>> results = dataBase.IndexSong(tmp, 0, tmp.Length);
                 int score = 0;
                 int id = dataBase.GetBestHitBySpanMatch(results, ref score, false);
                 if (score > maxScore)
@@ -365,23 +361,10 @@ namespace Shazam
                 int id = GetBestHit(audio, dataBase, 16);
             }
         }
-
-        private static FileInfo[] GetAllMp3Files(string dataFolder)
-        {
-            if (!dataFolder.EndsWith("\\"))
-                dataFolder += "\\";
-            if (!Directory.Exists(dataFolder))
-                return null;
-
-            DirectoryInfo dirInfo = new DirectoryInfo(dataFolder);
-            FileInfo[] files = dirInfo.GetFiles("*.mp3", SearchOption.AllDirectories);
-
-            return files;
-        }
-
+                
         public static void CaculateMiddleValue(string dataFolder)
         {
-            FileInfo[] files = GetAllMp3Files(dataFolder);
+            FileInfo[] files = Utility.GetFiles(dataFolder, "*.mp3");
             if (files == null)
                 return;
 

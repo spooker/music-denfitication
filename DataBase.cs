@@ -19,14 +19,27 @@ namespace Shazam
         {
             hashMaker = hasher;
         }
+
         private long[] GetAudioHash(byte[] audio)
         {
-            Complex[][] results = FFT(audio, hashMaker.ChunkSize);
+            Complex[][] results = FFT(audio, 0, audio.Length, hashMaker.ChunkSize);
             return hashMaker.GetHash(results);
-        }                
-        public static Complex[][] FFT(byte[] audio, int chunkSize)
+        }
+
+        private long[] GetAudioHash(byte[] audio, int start, int length)
         {
-            int totalSize = audio.Length;
+            Complex[][] results = FFT(audio, start, length, hashMaker.ChunkSize);
+            return hashMaker.GetHash(results);
+        }
+
+        //public static Complex[][] FFT(byte[] audio, int chunkSize)
+        //{
+        //    return FFT(audio, 0, audio.Length, chunkSize);
+        //}
+
+        public static Complex[][] FFT(byte[] audio, int start, int length, int chunkSize)
+        {
+            int totalSize = length;
             int amountPossible = totalSize / chunkSize;
 
             //When turning into frequency domain we'll need complex numbers:
@@ -35,15 +48,12 @@ namespace Shazam
             for (int i = 0; i < amountPossible; i++)
             {
                 Complex[] complex = new Complex[chunkSize];
-                for (int start = i * chunkSize, j = 0;
-                     j < chunkSize;
-                     j++)
+                for (int j = 0; j < chunkSize; j++)
                 {
                     //Put the time domain data into a complex number with imaginary part as 0:
-                    complex[j] = new Complex(audio[start + j], 0);
+                    complex[j] = new Complex(audio[start++], 0);
                 }
-                //Complex[] tmpRs = FFT1.fft(complex);
-
+                
                 //Perform FFT analysis on the chunk:
                 Fourier.FFT(complex, complex.Length, FourierDirection.Forward);
                 results[i] = complex;
@@ -119,6 +129,7 @@ namespace Shazam
         }
         public void Load(string fileName)
         {
+            Console.WriteLine("Loading data base from file: {0} ...", fileName);
             using (StreamReader sr = new StreamReader(fileName))
             {
                 songNames.Clear();
@@ -149,6 +160,7 @@ namespace Shazam
                     hashMap.Add(hash, pointList);
                 }
             }
+            Console.WriteLine("Done!");
         }
         public void BuildDataBase(string dataFolder)
         {
@@ -177,11 +189,11 @@ namespace Shazam
             Console.WriteLine("Indexing done. Saving to the file.");
             File.Delete(tmpFileName);
         }
-        
-        public Dictionary<int, List<int>> IndexSong(byte[] audio)
+
+        public Dictionary<int, List<int>> IndexSong(byte[] audio, int start, int length)
         {
             Dictionary<int, List<int>> results = new Dictionary<int, List<int>>();
-            long[] hashes = GetAudioHash(audio);
+            long[] hashes = GetAudioHash(audio, start, length);
             for (int i = 0; i < hashes.Length; i++)
             {
                 if (hashMap.ContainsKey(hashes[i]))
@@ -349,10 +361,11 @@ namespace Shazam
                 }
                 else
                 {
-                    if (Math.Abs(span - value) <= 1)
+                    //if (Math.Abs(span - value) <= 1)
+                    if (span == value)
                     {
                         count++;
-                        value = span;
+                        //value = span;
                     }
                     else
                     {
@@ -362,6 +375,8 @@ namespace Shazam
                     }
                 }
             }
+            countSpan.Add(new KeyValuePair<int, int>(count, value));
+
             countSpan.Sort(
                 delegate(KeyValuePair<int, int> firstPair,
                 KeyValuePair<int, int> secondPair)
@@ -372,6 +387,97 @@ namespace Shazam
                                     
             return countSpan;
         }
+        public int GetBestHit(byte[] audio, int shiftCount)
+        {
+            return GetBestHit(audio, 0, audio.Length, shiftCount);
+        }
 
+        public double MaxScore = 0;
+        public int GetBestHit(byte[] audio, int start, int length, int shiftCount)
+        {
+            byte[] tmp = null;
+            int max = hashMaker.ChunkSize;
+            int step = max / shiftCount;
+
+            int maxScore = -1;
+            int bestId = -1;
+            for (int i = 0; i < max; i += step)
+            {
+                int startIndex = start + i;
+                int newLength = length - i;
+                //tmp = new byte[audio.Length - i];
+                //Array.Copy(audio, i, tmp, 0, tmp.Length);
+
+                Dictionary<int, List<int>> results = IndexSong(audio, startIndex, newLength);
+                int score = 0;
+                int id = GetBestHitBySpanMatch(results, ref score, false);
+                if (score > maxScore)
+                {
+                    maxScore = score;
+                    bestId = id;
+                }
+            }
+            MaxScore = maxScore;
+            return bestId;
+        }
+
+        private static int SECONDS = 10;
+        private static int DATA_LENGTH = SECONDS * Mp3ToWavConverter.RATE;
+        public void QuestSigleFile(string file)
+        {
+            string fileName = Path.GetFileNameWithoutExtension(file);
+            byte[] audio = Mp3ToWavConverter.ReadBytesFromMp3(file);
+
+            int chunkSize = hashMaker.ChunkSize * 2;
+
+            Console.WriteLine("Total {0}", (audio.Length - DATA_LENGTH) / chunkSize);
+            int startIndex = 0;
+            int iCount = 1;
+            byte[] audioSegment = new byte[DATA_LENGTH];
+        
+            while (audio.Length >= startIndex + DATA_LENGTH)
+            {
+                Console.Write("{0}\tStart index: {1}", iCount++, startIndex);
+                //Array.Copy(audio, startIndex, audioSegment, 0, DATA_LENGTH);
+                int id = GetBestHit(audio, startIndex, DATA_LENGTH, 1);
+
+                string name = GetNameByID(id);
+                bool bSuccess = (fileName.CompareTo(name) == 0);
+                Console.WriteLine(bSuccess ? "\t++" : "\t--");
+
+                if (!bSuccess)
+                {
+                    int debug = 2;
+                }
+                startIndex += chunkSize;
+            }
+        }
+
+        public void QuestSigleFile(string file, int count, int step, int offset)
+        {
+            string fileName = Path.GetFileNameWithoutExtension(file);
+            byte[] audio = Mp3ToWavConverter.ReadBytesFromMp3(file);
+
+            int chunkSize = hashMaker.ChunkSize * 2;
+
+            Console.WriteLine("Total {0}", (audio.Length - DATA_LENGTH) / chunkSize);
+
+            for(int i = 0, start = offset; i < count; i++, start += step)
+            {
+                if (start + DATA_LENGTH > audio.Length)
+                    break;
+
+                int id = GetBestHit(audio, start, DATA_LENGTH, 1);
+                string name = GetNameByID(id);
+                bool bSuccess = (fileName.CompareTo(name) == 0);
+
+                Console.Write("{0}:{1} {2}\t", start, MaxScore, bSuccess ? "+":"-");
+
+                if (!bSuccess)
+                {
+                    //Console.Write("*");
+                }
+            }
+        }
     }
 }
