@@ -9,7 +9,7 @@ using System.Diagnostics;
 
 namespace Shazam
 {
-    class MicRecorder
+    public class MicRecorder
     {
         //[DllImport("winmm.dll", EntryPoint = "mciSendStringA", CharSet = CharSet.Ansi, SetLastError = true, ExactSpelling = true)]
         //private static extern int mciSendString(string lpstrCommand, string lpstrReturnString, int uReturnLength, int hwndCallback);

@@ -9,11 +9,12 @@ using WaveLib;
 
 namespace Shazam
 {
-    class Mp3ToWavConverter
-    { 
+    public class Mp3ToWavConverter
+    {
+        public static int RATE = 44100;
         public static void Convert(string mp3File, string wavFile)
         {
-            using (WmaStream str = new WmaStream(mp3File, new WaveFormat(44100, 8, 1))) 
+            using (WmaStream str = new WmaStream(mp3File, new WaveFormat(RATE, 8, 1))) 
             {
                 byte[] buffer = new byte[str.SampleSize * 2];
                 AudioWriter writer = new WaveWriter(new FileStream(wavFile, FileMode.Create), str.Format);
@@ -34,7 +35,7 @@ namespace Shazam
 
         public static void WriteBytesToWav(string wavFile, byte[] data)
         {
-            AudioWriter writer = new WaveWriter(new FileStream(wavFile, FileMode.Create), new WaveFormat(44100, 8, 1));
+            AudioWriter writer = new WaveWriter(new FileStream(wavFile, FileMode.Create), new WaveFormat(RATE, 8, 1));
             try
             {
                 writer.Write(data);
@@ -50,7 +51,7 @@ namespace Shazam
             List<byte> bytes = new List<byte>();
             try
             {
-                using (WmaStream str = new WmaStream(mp3File, new WaveFormat(44100, 8, 1)))
+                using (WmaStream str = new WmaStream(mp3File, new WaveFormat(RATE, 8, 1)))
                 {
                     bytes.Capacity = (int)str.Length * 2;
                     byte[] buffer = new byte[str.SampleSize * 2];
