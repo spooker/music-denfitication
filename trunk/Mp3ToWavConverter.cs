@@ -35,10 +35,15 @@ namespace Shazam
 
         public static void WriteBytesToWav(string wavFile, byte[] data)
         {
+            WriteBytesToWav(wavFile, data, 0, data.Length);
+        }
+
+        public static void WriteBytesToWav(string wavFile, byte[] data, int index, int count)
+        {
             AudioWriter writer = new WaveWriter(new FileStream(wavFile, FileMode.Create), new WaveFormat(RATE, 8, 1));
             try
             {
-                writer.Write(data);
+                writer.Write(data, index, count);
             }
             finally
             {
