@@ -67,7 +67,20 @@ namespace Shazam
                 throw new ArgumentOutOfRangeException("id");
 
             return songNames[id];
-        }                
+        }
+        public int GetIDByName(string name)
+        {
+            int i = 0;
+            foreach (string fileName in songNames)
+            {
+                if (fileName.CompareTo(name) == 0)
+                    return i;
+                i++;
+            }
+
+            return -1;
+        }
+
         public void AddNewSong(string filePath)
         {
             try
@@ -267,7 +280,7 @@ namespace Shazam
             {
                 keyValuePair.Value.Sort();
                 List<KeyValuePair<int, int>> countSpan = GetBestTwoSpan(keyValuePair.Value);
-                if (countSpan.Count >= 2 && Math.Abs(countSpan[0].Key - countSpan[1].Key) < 10)
+                if (countSpan.Count >= 2 && Math.Abs(countSpan[0].Value - countSpan[1].Value) < 10)
                 {
                     countID.Add(new KeyValuePair<int, int>(countSpan[0].Key + countSpan[1].Key, keyValuePair.Key));
                 }
@@ -392,10 +405,26 @@ namespace Shazam
             return GetBestHit(audio, 0, audio.Length, shiftCount);
         }
 
+        private void StatisticOnResult(IEnumerable<KeyValuePair<int, List<int>>> results)
+        {
+            List<int> count = new List<int>();
+            foreach (KeyValuePair<int, List<int>> value in results)
+            {
+                count.Add(value.Value.Count);
+            }
+
+            count.Sort();
+            Dictionary<int, int> keyCount = Utility.Count(count);
+
+            foreach (KeyValuePair<int, int> pair in keyCount)
+            {
+                Console.WriteLine("{0} - {1}", pair.Key, pair.Value);
+            }
+        }
+
         public double MaxScore = 0;
         public int GetBestHit(byte[] audio, int start, int length, int shiftCount)
         {
-            byte[] tmp = null;
             int max = hashMaker.ChunkSize;
             int step = max / shiftCount;
 
@@ -405,12 +434,23 @@ namespace Shazam
             {
                 int startIndex = start + i;
                 int newLength = length - i;
-                //tmp = new byte[audio.Length - i];
-                //Array.Copy(audio, i, tmp, 0, tmp.Length);
 
                 Dictionary<int, List<int>> results = IndexSong(audio, startIndex, newLength);
+                IEnumerable<KeyValuePair<int, List<int>>> query = results.Where(result => result.Value.Count > 5);
+                //StatisticOnResult(query);
+                Dictionary<int, List<int>> filteredResults = new Dictionary<int, List<int>>();
+                foreach (KeyValuePair<int, List<int>> keyValue in query)
+                {
+                    filteredResults.Add(keyValue.Key, keyValue.Value);
+                }
+                if (filteredResults.Count <= 0)
+                {
+                    continue;
+                }
+
                 int score = 0;
-                int id = GetBestHitBySpanMatch(results, ref score, false);
+                int id = GetBestHitBySpanMatch(filteredResults, ref score, false);
+                Console.WriteLine("[ID]{0} [Score]{1} [Name]{2}", id, score, GetNameByID(id));
                 if (score > maxScore)
                 {
                     maxScore = score;
@@ -477,6 +517,78 @@ namespace Shazam
                 {
                     //Console.Write("*");
                 }
+            }
+        }
+
+        private static Random random = new Random();
+        private static int GetRandomStartIndex(int length)
+        {
+            int value = random.Next(length - DATA_LENGTH);
+            return value;
+        }
+
+        public void RandomQuerySigleFile(string file, int count)
+        {
+            string fileName = Path.GetFileNameWithoutExtension(file);
+            fileName = "01-james_horner-you_dont_dream_in_cryo._.";
+            string fileDir = Path.GetDirectoryName(file);
+            byte[] audio = Mp3ToWavConverter.ReadBytesFromMp3(file);
+
+            Console.WriteLine("File:" + fileName);
+            Console.WriteLine("ID:" + GetIDByName(fileName));
+            Console.WriteLine("Test Count:{0}", count);
+
+            for (int i = 0; i < count; i++)
+            {
+                int start = GetRandomStartIndex(audio.Length);
+                start = 10321975;
+                int id = GetBestHit(audio, start, DATA_LENGTH, 1);
+                string name = "***name id out of range***";
+                try
+                {
+                    name = GetNameByID(id);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("ID = {0}", id);
+                    Console.WriteLine(e.Message);
+                }
+                //bool bSuccess = (fileName.CompareTo(name) == 0);
+                //Console.Write("{0}:{1} {2}\t", start, MaxScore, bSuccess ? "+" : "-");
+                Console.WriteLine("{0}\t{2}\t{3}:{1}", i, name, start, MaxScore);
+
+                if (name.CompareTo(fileName) != 0)
+                {
+                    Mp3ToWavConverter.WriteBytesToWav(string.Format(@"{0}\BadCase-{1}.wav", fileDir, start), audio, start, DATA_LENGTH); 
+                }
+            }
+        }
+
+        public static void SimpleTest(string dataFolder)
+        {
+            DataBase dataBase = new DataBase(new LongHash());
+            dataBase.Load(dataFolder);
+            int seconds = 10;
+
+            while (true)
+            {
+                Console.WriteLine("Press any key to identify a new song, press ESC to exit.\n");
+                ConsoleKeyInfo keyInfo = Console.ReadKey();
+                if (keyInfo.Key == ConsoleKey.Escape)
+                    break;
+
+                byte[] audio = null;
+                Console.WriteLine("Start recording audio from mic ...", seconds);
+                MicRecorder recorder = new MicRecorder();
+                recorder.Seconds = seconds;
+                recorder.RequestStop = false;
+                recorder.RecStart();
+
+                audio = recorder.GetAudioData();
+                //Console.WriteLine("Length of audio data is {0}.", audio.Length);
+                
+                int id = dataBase.GetBestHit(audio, 16);
+                Console.WriteLine(dataBase.GetNameByID(id));
             }
         }
     }

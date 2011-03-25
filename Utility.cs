@@ -212,6 +212,36 @@ namespace Shazam
             magnitude.Sort();
             return magnitude.ToArray();
         }
-                
+
+        public static Dictionary<int, int> Count(List<int> values)
+        {
+            if (values == null)
+                return null;
+            if (values.Count == 0)
+                return new Dictionary<int, int>();
+
+            values.Sort();
+
+            Dictionary<int, int> result = new Dictionary<int, int>();
+            int i = 0;
+            int key = values[i++];
+            int count = 1;
+            while (i < values.Count)
+            {
+                if (values[i] == key)
+                    count++;
+                else 
+                {
+                    result.Add(key, count);
+                    key = values[i];
+                    count = 1;
+                }
+                i++;
+            }
+
+            result.Add(key, count);
+
+            return result;
+        }
     }
 }

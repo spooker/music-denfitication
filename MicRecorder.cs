@@ -177,7 +177,7 @@ namespace Shazam
                 RecordCapturedData();
                 //Console.WriteLine("[WaitThread] recording data...");
             }
-            Console.WriteLine("[WaitThread] going to stop..");
+            //Console.WriteLine("[WaitThread] going to stop..");
         }
 
         private void RecordCapturedData()
@@ -238,7 +238,7 @@ namespace Shazam
             // 关闭通知消息 
             if (null != mNotificationEvent)
             {
-                Console.WriteLine("Request WaitThread to stop..");
+                //Console.WriteLine("Request WaitThread to stop..");
                 requestStop = true;
                 mNotificationEvent.Set();
             }
