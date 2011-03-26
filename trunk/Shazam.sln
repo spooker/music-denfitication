@@ -1,11 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 10.00
 # Visual Studio 2008
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shazam", "Shazam.csproj", "{28D080F7-161C-43F0-9BA1-C2FE11BAD334}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Awesome", "Awesome\Awesome.csproj", "{083A4F4A-1B54-402F-A3CA-5011947C210C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Exocortex.DSP.v1", "ExocortexDSP\Exocortex.DSP.v1.csproj", "{1904A41B-D1B8-40E5-ADBB-728DDCF7C816}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test", "Test\Test.csproj", "{083A4F4A-1B54-402F-A3CA-5011947C210C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MusicIdentifier", "MusicIdentifier\MusicIdentifier.csproj", "{28D080F7-161C-43F0-9BA1-C2FE11BAD334}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -13,18 +11,14 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{28D080F7-161C-43F0-9BA1-C2FE11BAD334}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{28D080F7-161C-43F0-9BA1-C2FE11BAD334}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{28D080F7-161C-43F0-9BA1-C2FE11BAD334}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{28D080F7-161C-43F0-9BA1-C2FE11BAD334}.Release|Any CPU.Build.0 = Release|Any CPU
-		{1904A41B-D1B8-40E5-ADBB-728DDCF7C816}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{1904A41B-D1B8-40E5-ADBB-728DDCF7C816}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{1904A41B-D1B8-40E5-ADBB-728DDCF7C816}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{1904A41B-D1B8-40E5-ADBB-728DDCF7C816}.Release|Any CPU.Build.0 = Release|Any CPU
 		{083A4F4A-1B54-402F-A3CA-5011947C210C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{083A4F4A-1B54-402F-A3CA-5011947C210C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{083A4F4A-1B54-402F-A3CA-5011947C210C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{083A4F4A-1B54-402F-A3CA-5011947C210C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{28D080F7-161C-43F0-9BA1-C2FE11BAD334}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{28D080F7-161C-43F0-9BA1-C2FE11BAD334}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{28D080F7-161C-43F0-9BA1-C2FE11BAD334}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{28D080F7-161C-43F0-9BA1-C2FE11BAD334}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
