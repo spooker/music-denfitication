@@ -20,6 +20,12 @@ namespace MusicIdentifier
             hashMaker = hasher;
         }
 
+        public bool Quiet
+        {
+            set;
+            get;
+        }
+
         private long[] GetAudioHash(byte[] audio)
         {
             Complex[][] results = FFT(audio, 0, audio.Length, hashMaker.ChunkSize);
@@ -488,13 +494,17 @@ namespace MusicIdentifier
             int scoreMany = 0;
             int idOne = counterOne.GetBestID(ref scoreOne);
             int idMany = counterMany.GetBestID(ref scoreMany);
-            Console.WriteLine("[Counter One]\t[ID] {0}\t[Score] {1}\t[Name]{2}", idOne, scoreOne, GetNameByID(idOne)); 
-            Console.WriteLine("[Counter Many]\t[ID] {0}\t[Score] {1}\t[Name]{2}", idMany, scoreMany, GetNameByID(idMany));
-            Console.WriteLine("[Max Scoure]\t[ID] {0}\t[Score] {1}\t[Name]{2}", bestId, maxScore, GetNameByID(bestId));
+            if (!Quiet)
+            {
+                Console.WriteLine("[Counter One]\t[ID] {0}\t[Score] {1}\t[Name]{2}", idOne, scoreOne, GetNameByID(idOne));
+                Console.WriteLine("[Counter Many]\t[ID] {0}\t[Score] {1}\t[Name]{2}", idMany, scoreMany, GetNameByID(idMany));
+                Console.WriteLine("[Max Scoure]\t[ID] {0}\t[Score] {1}\t[Name]{2}", bestId, maxScore, GetNameByID(bestId));
+            }
 
             if (maxScore < 5 && idMany != bestId)
             {
-                Console.WriteLine("Score is too small!");
+                if(!Quiet)
+                    Console.WriteLine("Score is too small!");
                 bestId = -1;
             }
 
