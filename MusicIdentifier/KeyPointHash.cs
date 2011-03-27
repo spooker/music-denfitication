@@ -14,7 +14,8 @@ namespace MusicIdentifier
         public static int UPPER_LIMIT = 300;
         public static int[] RANGE = new int[] {80, 120, 180, 300};
     }
-    class KeyPointHash : IHashMaker
+
+    public class KeyPointHash : IHashMaker
     { 
         private int[] GetKeyPoints(Complex[] result)
         {
