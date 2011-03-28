@@ -19,11 +19,8 @@ namespace Test
             return value;
         }
 
-        public static void Test(string dataFolder, string dataBaseFile, string indexFile)
+        public static void Test(string dataFolder, string indexFile, DataBase dataBase)
         {
-            DataBase dataBase = new DataBase(new LongHash());
-            dataBase.Load(dataBaseFile);
-
             FileInfo[] fileInfoArray = Utility.GetFiles(dataFolder, "*.mp3");
 
             int bSuccessCount = 0;
@@ -53,7 +50,7 @@ namespace Test
                         Array.Copy(audio, startIndex, audioSegment, 0, DATA_LENGTH);
                         sw.Write("\t{0}", startIndex);
 
-                        int id = dataBase.GetBestHit(audioSegment, 16);
+                        int id = dataBase.GetBestHit(audioSegment, 1);
 
                         string name = dataBase.GetNameByID(id);
                         bool bSuccess = (fileName.CompareTo(name) == 0);
