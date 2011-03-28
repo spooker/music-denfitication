@@ -4,12 +4,13 @@ using System.Linq;
 using System.Text;
 using MusicIdentifier;
 using System.IO;
+using System.Threading;
 
 namespace Test
 {
     class Program
     {
-        static void Main(string[] args)
+        static void Main1(string[] args)
         {
             if (args.Length < 2)
             {
@@ -82,21 +83,22 @@ Usage : Shazam Build | Test
                 Utility.ShutDown();
         }
 
-        static void Main1(string[] args)
+        static void Main(string[] args)
         {
             //BuildDataBase();
-            //RunAutoTest();
+            //RunAutoTest(false);
             //Mp3ToWav(args);
             //RunVolumeTest();
             //VolumeTest.SimpleTest(@"D:\Music\Avatar\DataBase.txt");
             //QueryTest.Test(@"D:\Music\Avatar\DataBase.txt", @"D:\Music\Avatar\01-james_horner-you_dont_dream_in_cryo._..mp3");
             //ShortFileCount();
-            DataBase.SimpleTest(@"D:\Music\Avatar\DataBase.txt");
+            //DataBase.SimpleTest(@"D:\Music\Avatar\DataBase.txt");
             //QueryTest.TestRandom(@"D:\Music\Avatar\DataBase.txt", @"D:\Music\Avatar\01-record.mp3");
             //QueryTest.TestRandom(@"D:\Music\Avatar\DataBase.txt", @"D:\Music\Avatar\1.iphone.mp3");
             //QueryTest.TestRandom(@"D:\Music\Avatar\DataBase.txt", @"D:\Music\信.-.[趁我].专辑.(MP3)\04. 独领风骚.mp3");
             //QueryTest.Test(@"D:\Music\Avatar\DataBase.txt", @"D:\Music\孙燕姿《经典全纪录 主打精华版》[224kbps VBR]\fc-懂事.mp3", "09.懂事");
             //QueryTest.TestRandom(@"D:\Music\Avatar\DataBase.txt", @"D:\Music\孙燕姿《经典全纪录 主打精华版》[224kbps VBR]\09.懂事.伴奏.mp3", "09.懂事");
+            PlayMp3();
         }
 
         static void ShortFileCount()
@@ -128,10 +130,17 @@ Usage : Shazam Build | Test
             Utility.ShutDown();
         }
 
-        static void RunAutoTest()
+        static void RunAutoTest(bool shutDown)
         {
-            AutoTest.Test(@"D:\Music\", @"D:\Music\Avatar\DataBase.txt", @"D:\Music\Avatar\FileIndex_3_24.txt");
-            Utility.ShutDown();
+
+            //DataBase dataBase = new DataBase(new LongHash());
+            DataBase dataBase = new DataBase(new KeyPointHash());
+            dataBase.Load(@"d:\Music\DataBase.txt");
+            dataBase.Quiet = true;
+
+            AutoTest.Test(@"D:\Music\", @"D:\Music\Avatar\FileIndex_3_26_keyPoint.txt", dataBase);
+            if (shutDown)
+                Utility.ShutDown();
         }
 
         static void RunVolumeTest()
@@ -148,6 +157,28 @@ Usage : Shazam Build | Test
             }
 
             Mp3ToWavConverter.Convert(args[0], args[1]);
+        }
+
+        static void PlayMp3()
+        {            
+            //FileInfo[] fileInfos = Utility.GetFiles(@"d:\music", "*.mp3");
+            MyMedia player = new MyMedia();
+            player.FileName = @"D:\Music\孙燕姿《经典全纪录 主打精华版》[224kbps VBR]\07.害怕.mp3";
+            player.Play();
+            Console.ReadLine();
+            //foreach (FileInfo fileInfo in fileInfos)
+            //{
+            //    Console.WriteLine(fileInfo.FullName);
+            //    player.FileName = fileInfo.FullName;
+            //    Console.WriteLine(player.Duration);
+            //    player.Play();
+            //    Console.WriteLine(player.Duration);
+            //    Thread.Sleep(10000); // ten seconds
+            //    player.Puase();
+            //    Thread.Sleep(10000); // ten seconds
+            //    player.Stop();
+            //    Thread.Sleep(20000);
+            //}
         }
     }
 }
