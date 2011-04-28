@@ -39,7 +39,7 @@
             this.button7 = new System.Windows.Forms.Button();
             this.label1 = new System.Windows.Forms.Label();
             this.label2 = new System.Windows.Forms.Label();
-            this.button6 = new System.Windows.Forms.Button();
+            this.StopButton = new System.Windows.Forms.Button();
             this.label3 = new System.Windows.Forms.Label();
             this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
             this.trackBar1 = new System.Windows.Forms.TrackBar();
@@ -145,15 +145,15 @@
             this.label2.TabIndex = 11;
             this.label2.Text = "位置";
             // 
-            // button6
+            // StopButton
             // 
-            this.button6.Location = new System.Drawing.Point(195, 65);
-            this.button6.Name = "button6";
-            this.button6.Size = new System.Drawing.Size(75, 23);
-            this.button6.TabIndex = 12;
-            this.button6.Text = "stop";
-            this.button6.UseVisualStyleBackColor = true;
-            this.button6.Click += new System.EventHandler(this.button6_Click);
+            this.StopButton.Location = new System.Drawing.Point(195, 65);
+            this.StopButton.Name = "StopButton";
+            this.StopButton.Size = new System.Drawing.Size(75, 23);
+            this.StopButton.TabIndex = 12;
+            this.StopButton.Text = "stop";
+            this.StopButton.UseVisualStyleBackColor = true;
+            this.StopButton.Click += new System.EventHandler(this.StopButton_Click);
             // 
             // label3
             // 
@@ -225,7 +225,7 @@
             this.Controls.Add(this.numericUpDown1);
             this.Controls.Add(this.trackBar1);
             this.Controls.Add(this.label3);
-            this.Controls.Add(this.button6);
+            this.Controls.Add(this.StopButton);
             this.Controls.Add(this.label2);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.button7);
@@ -258,7 +258,7 @@
         private System.Windows.Forms.Button button7;
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Label label2;
-        private System.Windows.Forms.Button button6;
+        private System.Windows.Forms.Button StopButton;
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.ToolTip toolTip1;
         private System.Windows.Forms.TrackBar trackBar1;

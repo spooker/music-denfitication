@@ -7,8 +7,8 @@ using System.Text;
 using System.Windows.Forms;
 using System.Runtime.InteropServices;
 using MusicIdentifier;
-using System.Threading;
 using System.IO;
+using System.Threading;
 
 namespace TestPlayer
 {
@@ -23,9 +23,10 @@ namespace TestPlayer
         MyMedia myclass = new MyMedia();
         bool IsOff = false;
         bool IsStop = false;
-        MicRecorder recorder = new MicRecorder();
+        MicRecorder recorder = null;
         FileInfo[] files = null;
         int fileIndex = -1;
+        bool Recording = false;
   
         private void Form1_Load(object sender, EventArgs e)
         {
@@ -40,35 +41,35 @@ namespace TestPlayer
         private void mytime_Tick(object sender,EventArgs e)
         {
             IsStop = false;
-            if (myclass.CurrentState == State.Playing)
+            if (myclass.CurrentState==State.Playing)
             {
                 this.trackBar1.Value = myclass.CurrentPosition;
                 this.label2.Text = this.trackBar1.Value.ToString();
             }
-            else
-            {   
-                if (myclass.CurrentState == State.Stopped)
+            else if (myclass.CurrentState==State.Paused)
+            {
+                mytime.Stop();
+            }
+            if (myclass.CurrentState==State.Stopped)
+            {
+                Stop();
+
+                if (Recording == true)
                 {
-                    if (trackBar1.Value < trackBar1.Maximum)
+                    if (fileIndex != -1)
+                        StopRecording();
+
+                    fileIndex++;
+                    if (fileIndex < files.Length)
                     {
-                        this.trackBar1.Value += 1;
-                        this.label2.Text = this.trackBar1.Value.ToString();
+                        StartPlayAndRecord(files[fileIndex].FullName);
+                    }
+                    else
+                    {
+                        Recording = false;
                     }
                 }
-                if(fileIndex != -1)
-                    StopRecording();
-
-                //mytime.Stop();
-                fileIndex++;
-                if (fileIndex < files.Length)
-                {
-                    StartPlayAndRecord(files[fileIndex].FullName);
-                }
-                else
-                {
-                    mytime.Stop();
-                }
-            }
+            }            
         }
 
         private void UpdateStatus(string message)
@@ -99,6 +100,7 @@ namespace TestPlayer
 
         private void Open(string fileName)
         {
+            myclass = new MyMedia();
             myclass.FileName = fileName;
             this.trackBar1.Maximum = myclass.TotalSeconds;
         }
@@ -107,15 +109,18 @@ namespace TestPlayer
         {
             if (myclass.CurrentState != State.Playing)
             {
-                //mytime.Start();
+                mytime.Start();
                 myclass.Play();
             }
         }
 
         private void Stop()
         {
+            mytime.Stop();
             myclass.Stop();
             myclass.GoStartPosition();
+            this.trackBar1.Value = 0;
+            this.label2.Text = this.trackBar1.Value.ToString();
         }
 
         private void OpenButton_Click(object sender, EventArgs e)
@@ -154,13 +159,9 @@ namespace TestPlayer
         {
             this.Text = myclass.CurrentState.ToString();
         }
-        private void button6_Click(object sender, EventArgs e)
+        private void StopButton_Click(object sender, EventArgs e)
         {
-            myclass.Stop();
-            mytime.Stop();
-            myclass.GoStartPosition();
-            this.trackBar1.Value = 0;
-            this.label2.Text = this.trackBar1.Value.ToString();
+            Stop();
         }
 
         private void trackBar1_Scroll(object sender, EventArgs e)
@@ -196,16 +197,17 @@ namespace TestPlayer
         {
             string filePath = @"D:\Music\李建.-.[音乐傲骨].专辑.(MP3)";
             files = Utility.GetFiles(filePath, "*.mp3");
+            Recording = true;
             mytime.Start();
         }
 
         private void StartPlayAndRecord(string file)
         {
             UpdateStatus(file);
-            Stop();
             Open(file);
             Play();
 
+            recorder = new MicRecorder();
             recorder.Seconds = int.MaxValue;
             recorder.RequestStop = false;
 
