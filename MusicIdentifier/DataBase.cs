@@ -12,12 +12,16 @@ namespace MusicIdentifier
     public class DataBase
     {
         private List<string> songNames = new List<string>();
-        private Dictionary<long, List<DataPoint>> hashMap = new Dictionary<long, List<DataPoint>>();        
+        private Dictionary<long, List<DataPoint>> hashMap = new Dictionary<long, List<DataPoint>>();
+        private HashSet<string> songNameSet = new HashSet<string>();
         IHashMaker hashMaker;
+
+        public bool CheckDuplicate { set; get; }
 
         public DataBase(IHashMaker hasher)
         {
             hashMaker = hasher;
+            CheckDuplicate = false;
         }
 
         public bool Quiet
@@ -26,6 +30,42 @@ namespace MusicIdentifier
             get;
         }
 
+        #region For Unit Test
+        public List<string> SongNames
+        {
+            get { return songNames; }
+        }
+
+        public Dictionary<long, List<DataPoint>> HashMap
+        {
+            get { return hashMap; }
+        }
+
+        public string GetSongNamesString()
+        {
+            StringBuilder sb = new StringBuilder();
+            foreach (string name in songNames)
+                sb.Append(name + "|");
+            return sb.ToString();
+        }
+
+        public string GetHashMapString()
+        {
+            StringBuilder sb = new StringBuilder();
+            foreach (KeyValuePair<long, List<DataPoint>> keyValue in hashMap)
+            {
+                sb.Append(keyValue.Key);
+                sb.Append("=>");
+                foreach(DataPoint dataPoint in keyValue.Value)
+                {
+                    sb.Append(dataPoint.ToString());
+                    sb.Append(":");
+                }
+                sb.Append("\n");
+            }
+            return sb.ToString();
+        }
+        #endregion
         private long[] GetAudioHash(byte[] audio)
         {
             Complex[][] results = FFT(audio, 0, audio.Length, hashMaker.ChunkSize);
@@ -90,13 +130,14 @@ namespace MusicIdentifier
         public void AddNewSong(string filePath)
         {
             try
-            {
+            {   
                 int id = songNames.Count;
                 byte[] audio = Mp3ToWavConverter.ReadBytesFromMp3(filePath);
                 long[] hashes = GetAudioHash(audio);
 
                 AddHash(id, hashes);
-                songNames.Add(Path.GetFileNameWithoutExtension(filePath));
+                string name = Path.GetFileNameWithoutExtension(filePath);
+                songNames.Add(name);
             }
             catch (Exception e)
             {
@@ -104,6 +145,7 @@ namespace MusicIdentifier
                 Console.WriteLine("{0} is not added to the database.", filePath);
             }
         }
+
         private void AddHash(int songID, long[] hashes)
         {
             for (int i = 0, size = hashes.Length; i < size; i++)
@@ -149,6 +191,7 @@ namespace MusicIdentifier
         public void Load(string fileName)
         {
             Console.WriteLine("Loading data base from file: {0} ...", fileName);
+            TimeInterval loadTimeInterval = new TimeInterval();
             try
             {
                 using (StreamReader sr = new StreamReader(fileName))
@@ -157,7 +200,10 @@ namespace MusicIdentifier
                     int nameCount = int.Parse(sr.ReadLine());
                     for (int i = 0; i < nameCount; i++)
                     {
-                        songNames.Add(sr.ReadLine());
+                        string name = sr.ReadLine();
+                        songNames.Add(name);
+                        if (CheckDuplicate)
+                            songNameSet.Add(name);
                     }
 
                     hashMap.Clear();
@@ -181,13 +227,14 @@ namespace MusicIdentifier
                         hashMap.Add(hash, pointList);
                     }
                 }
-                Console.WriteLine("Done!");
+                Console.WriteLine("Done! {0}s", loadTimeInterval.GetDurationInSecond());
             }
             catch (Exception e)
             {
                 Console.WriteLine(e.Message);
             }
         }
+        
         public void BuildDataBase(string dataFolder)
         {
             if (!dataFolder.EndsWith("\\"))
@@ -200,16 +247,31 @@ namespace MusicIdentifier
             FileInfo[] files = Utility.GetFiles(dataFolder, "*.mp3");
             Console.WriteLine("There are total {0} songs. Star indexing...", files.Length);
             int count = 0;
+            int unSkippedCount = 0;
             foreach (FileInfo file in files)
             {
                 count++;
+
+                string name = Path.GetFileNameWithoutExtension(file.Name);
+                if (CheckDuplicate && songNameSet.Contains(name))
+                {
+                    Console.WriteLine("Skipping {0}: {1}..", count, file.Name);
+                    continue;
+                }
+            
+                unSkippedCount++;
                 Console.WriteLine("Indexing {0}: {1}..", count, file.Name);
                 AddNewSong(file.FullName);
 
-                if (count % 100 == 0)
+                if (unSkippedCount % 100 == 0)
                 {
                     Console.WriteLine("Saving index to tmp file:" + tmpFileName);
                     Save(tmpFileName);
+                }
+
+                if (CheckDuplicate)
+                {
+                    songNameSet.Add(name);
                 }
             }
             Console.WriteLine("Indexing done. Saving to the file.");
@@ -625,10 +687,11 @@ namespace MusicIdentifier
             }
         }
 
-        public static void SimpleTest(string dataFolder)
+        public static void SimpleTest(string dataFolder, IHashMaker hashMaker, bool bQuiet)
         {
-            DataBase dataBase = new DataBase(new LongHash());
+            DataBase dataBase = new DataBase(hashMaker);
             dataBase.Load(dataFolder);
+            dataBase.Quiet = bQuiet;
             int seconds = 10;
 
             while (true)
@@ -647,17 +710,53 @@ namespace MusicIdentifier
 
                 audio = recorder.GetAudioData();
                 //Console.WriteLine("Length of audio data is {0}.", audio.Length);
+
+                TimeInterval timeInterval = new TimeInterval();
                 
                 int id = dataBase.GetBestHit(audio, 16);
 
+                double intervalInSecond = timeInterval.GetDurationInSecond();
+
                 Console.WriteLine("--------------------");
-                Console.Write("Final Match:\t");
+                Console.Write("Final Match ({0}s):\t", intervalInSecond);
                 if (id < 0)
                     Console.WriteLine("No match!");
                 else
                     Console.WriteLine(dataBase.GetNameByID(id));
                 Console.WriteLine("--------------------");
             }
+        }
+
+        public void Combine(DataBase other)
+        { 
+            if(other == null)
+                return;
+
+            int count = songNames.Count;
+            songNames.AddRange(other.songNames);
+
+            foreach (KeyValuePair<long, List<DataPoint>> keyValue in other.hashMap)
+            {
+                List<DataPoint> values = keyValue.Value;
+                for (int i = 0; i < values.Count; i++)
+                {
+                    values[i].SongID += count;
+                }
+                if (hashMap.ContainsKey(keyValue.Key))
+                {
+                    hashMap[keyValue.Key].AddRange(values);
+                }
+                else
+                {
+                    hashMap.Add(keyValue.Key, values);
+                }
+            }
+        }
+
+        public static DataBase Combine(DataBase first, DataBase second)
+        {
+            first.Combine(second);
+            return first;
         }
     }
 }

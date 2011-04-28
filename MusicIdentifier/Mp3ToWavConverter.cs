@@ -51,6 +51,17 @@ namespace MusicIdentifier
             }
         }
 
+        public static byte[] ReadBytes(string file)
+        {
+            string ext = Path.GetExtension(file).ToLower();
+            if (ext.CompareTo(".mp3") == 0)
+                return ReadBytesFromMp3(file);
+            else if (ext.CompareTo(".wav") == 0)
+                return ReadBytesFromWav(file);
+            else
+                throw new Exception(file);
+        }
+
         public static byte[] ReadBytesFromMp3(string mp3File)
         {
             List<byte> bytes = new List<byte>();
