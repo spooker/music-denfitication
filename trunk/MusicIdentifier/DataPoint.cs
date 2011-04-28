@@ -5,7 +5,7 @@ using System.Text;
 
 namespace MusicIdentifier
 {
-    class DataPoint
+    public class DataPoint
     {
         public int Time { set; get; }
         public int SongID { set; get; }
@@ -14,6 +14,11 @@ namespace MusicIdentifier
         {
             Time = time;
             SongID = songID;
+        }
+
+        public override string ToString()
+        {
+            return "{" + Time.ToString() + "," + SongID.ToString() + "}";
         }
     }
 }

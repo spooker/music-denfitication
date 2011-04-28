@@ -227,7 +227,7 @@ namespace MusicIdentifier
             int second = 0;
             while (second < Seconds && !RequestStop)
             {
-                Thread.Sleep(100);
+                Thread.Sleep(1000);
                 second++;
             }
             RecStop();

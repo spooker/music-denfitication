@@ -63,10 +63,6 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\lib\yeti.mmedia.dll</HintPath>
     </Reference>
-    <Reference Include="yeti.wmfsdk, Version=1.0.4019.39599, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\lib\yeti.wmfsdk.dll</HintPath>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Mp3Player.cs" />
@@ -82,7 +78,14 @@
     <Compile Include="Normalize.cs" />
     <Compile Include="KeyPointHash.cs" />
     <Compile Include="Statistician.cs" />
+    <Compile Include="TimeInterval.cs" />
     <Compile Include="Utility.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\yeti.wmfsdk\yeti.wmfsdk.csproj">
+      <Project>{FECB5BEB-AB05-454A-BB14-6A554E897274}</Project>
+      <Name>yeti.wmfsdk</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
