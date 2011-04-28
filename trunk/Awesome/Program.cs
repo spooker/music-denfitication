@@ -10,7 +10,7 @@ namespace Test
 {
     class Program
     {
-        static void Main1(string[] args)
+        static void Main(string[] args)
         {
             if (args.Length < 2)
             {
@@ -33,12 +33,61 @@ namespace Test
                     bool shutDown = false;
                     if (args.Length > 3)
                         shutDown = bool.Parse(args[3]);
-                    BuildDataBase(secondArg, thirdArg, shutDown);
+                    BuildDataBase(secondArg, new KeyPointHash(), thirdArg, shutDown);
                 }
                 else if (firstArg.CompareTo("test") == 0)
                 {
                     string dataBaseFile = secondArg;
-                    DataBase.SimpleTest(dataBaseFile);
+                    DataBase.SimpleTest(dataBaseFile, new KeyPointHash(), true);
+                }
+                else if (firstArg.CompareTo("append") == 0)
+                {
+                    string indexFile = secondArg;
+                    string dataFolder = args[2];
+
+                    AppendData(indexFile, new KeyPointHash(), dataFolder);
+                }
+                else if (firstArg.CompareTo("combine") == 0)
+                {
+                    if (args.Length < 3)
+                    {
+                        PrintUsage();
+                    }
+                    else
+                    {
+                        string listFile = args[1];
+                        string outputFile = args[2];
+                        using (StreamReader sr = new StreamReader(listFile, Encoding.GetEncoding("GB2312")))
+                        {
+                            DataBase finalDataBase = null;
+
+                            while (!sr.EndOfStream)
+                            {
+                                string indexFile = sr.ReadLine();
+                                if (!File.Exists(indexFile))
+                                {
+                                    Console.WriteLine("File doesn't exist: {0}", indexFile);
+                                    continue;
+                                }
+
+                                DataBase tmpDataBase = new DataBase(new KeyPointHash());
+                                tmpDataBase.Load(indexFile);
+                                if (finalDataBase == null)
+                                    finalDataBase = tmpDataBase;
+                                else
+                                {
+                                    Console.WriteLine("Combining...");
+                                    finalDataBase.Combine(tmpDataBase);
+                                }
+                            }
+
+                            finalDataBase.Save(outputFile);
+                        }
+                    }
+                }
+                else
+                {
+                    PrintUsage();
                 }
             }
         }
@@ -52,13 +101,22 @@ local machine. Then you can play any of them, this program can record
 10 seconds sound through the mic on your machin, then tells you what's
 the name of that song. Enjoy it! contact:<sliveysun@gmail.com>
 
-Usage : Shazam Build | Test 
+Usage : Shazam Build | Test | Combine
     Build MusicFolder IndexFile
         MusicFolder:    search all mp3 files under MusicFolder and build index;
         IndexFile:      the index are saved to IndexFile;
 
     Test IndexFile
-        IndexFile:      the index file created by Build command;";
+        IndexFile:      the index file created by Build command;
+
+    Combine ListFile OutputFile
+        ListFile: contains the path of all index files;
+        OutputFile:     is the combined index file
+
+    Append IndexFile MusicFolder
+        IndexFile:      the index file created by Build command;
+        MusicFolder:    search all mp3 files under MusicFolder and build index,
+                        only the files which are not indexed will be add;";
 
             WriteLog(usage);
         }
@@ -68,22 +126,43 @@ Usage : Shazam Build | Test
             Console.WriteLine(log);
         }
 
-        static void BuildDataBase(string dataFolder, string dataBaseFile, bool shutDown)
+        static void AppendData(string indexFile, IHashMaker hashMaker, string dataFolder)
         {
-            if (!File.Exists(dataFolder))
+            if (!Directory.Exists(dataFolder))
             {
                 WriteLog(string.Format("'{0}' doesn't exist! ", dataFolder));
                 return;
             }
 
-            DataBase dataBase = new DataBase(new LongHash());
+            if (!File.Exists(indexFile))
+            {
+                WriteLog(string.Format("'{0}' file doesn't exist! ", indexFile));
+                return;
+            }
+
+            DataBase dataBase = new DataBase(hashMaker);
+            dataBase.CheckDuplicate = true;
+            dataBase.Load(indexFile);
+            dataBase.BuildDataBase(dataFolder);
+            dataBase.Save(indexFile);    
+        }
+
+        static void BuildDataBase(string dataFolder, IHashMaker hashMaker, string dataBaseFile, bool shutDown)
+        {
+            if (!Directory.Exists(dataFolder))
+            {
+                WriteLog(string.Format("'{0}' doesn't exist! ", dataFolder));
+                return;
+            }
+
+            DataBase dataBase = new DataBase(hashMaker);
             dataBase.BuildDataBase(dataFolder);
             dataBase.Save(dataBaseFile);
             if (shutDown)
                 Utility.ShutDown();
         }
 
-        static void Main(string[] args)
+        static void Main1(string[] args)
         {
             //BuildDataBase();
             //RunAutoTest(false);
@@ -98,7 +177,25 @@ Usage : Shazam Build | Test
             //QueryTest.TestRandom(@"D:\Music\Avatar\DataBase.txt", @"D:\Music\信.-.[趁我].专辑.(MP3)\04. 独领风骚.mp3");
             //QueryTest.Test(@"D:\Music\Avatar\DataBase.txt", @"D:\Music\孙燕姿《经典全纪录 主打精华版》[224kbps VBR]\fc-懂事.mp3", "09.懂事");
             //QueryTest.TestRandom(@"D:\Music\Avatar\DataBase.txt", @"D:\Music\孙燕姿《经典全纪录 主打精华版》[224kbps VBR]\09.懂事.伴奏.mp3", "09.懂事");
-            PlayMp3();
+            //PlayMp3();
+            RunRecordAutoTest(false);
+        }
+
+        static void RunRecordAutoTest(bool shutDown)
+        {
+
+            //DataBase dataBase = new DataBase(new LongHash());
+            //dataBase.Load(@"D:\Music\Avatar\DataBase.txt");
+            DataBase dataBase = new DataBase(new KeyPointHash());
+            dataBase.Load(@"D:\Music\DataBase.txt");
+            dataBase.Quiet = true;
+
+            AutoTest.TEST_COUNT = 10;
+            AutoTest.SHIFT_COUNT = 64;
+            //AutoTest.Test(@"D:\Music\李建.-.[音乐傲骨].专辑.(MP3)\", "*.wav", @"D:\Music\李建.-.[音乐傲骨].专辑.(MP3)\FileIndex_4_8_keyPoint.txt", dataBase);
+            AutoTest.AnalyseFailure(@"D:\Music\李建.-.[音乐傲骨].专辑.(MP3)\", "*.wav", @"D:\Music\李建.-.[音乐傲骨].专辑.(MP3)\FileIndex_4_8_keyPoint.txt", dataBase);
+            if (shutDown)
+                Utility.ShutDown();
         }
 
         static void ShortFileCount()
@@ -138,7 +235,7 @@ Usage : Shazam Build | Test
             dataBase.Load(@"d:\Music\DataBase.txt");
             dataBase.Quiet = true;
 
-            AutoTest.Test(@"D:\Music\", @"D:\Music\Avatar\FileIndex_3_26_keyPoint.txt", dataBase);
+            AutoTest.Test(@"D:\Music\", ".mp3", @"D:\Music\Avatar\FileIndex_3_26_keyPoint.txt", dataBase);
             if (shutDown)
                 Utility.ShutDown();
         }
