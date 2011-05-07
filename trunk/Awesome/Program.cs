@@ -10,7 +10,7 @@ namespace Test
 {
     class Program
     {
-        static void Main(string[] args)
+        static void Main1(string[] args)
         {
             if (args.Length < 2)
             {
@@ -39,6 +39,12 @@ namespace Test
                 {
                     string dataBaseFile = secondArg;
                     DataBase.SimpleTest(dataBaseFile, new KeyPointHash(), true);
+                }
+                else if (firstArg.CompareTo("convert") == 0)
+                { 
+                    string inputFile = args[1];
+                    string outputFile = args[2];
+                    DataBase.ConvertIndexFileFromTextToBinary(inputFile, outputFile, new KeyPointHash());
                 }
                 else if (firstArg.CompareTo("append") == 0)
                 {
@@ -116,7 +122,10 @@ Usage : Shazam Build | Test | Combine
     Append IndexFile MusicFolder
         IndexFile:      the index file created by Build command;
         MusicFolder:    search all mp3 files under MusicFolder and build index,
-                        only the files which are not indexed will be add;";
+                        only the files which are not indexed will be add;
+    Convert TextIndexFile BinaryIndexFile
+        TextIndexFile   index file in text format
+        BinaryIndexFile index file in binary format";
 
             WriteLog(usage);
         }
@@ -157,12 +166,12 @@ Usage : Shazam Build | Test | Combine
 
             DataBase dataBase = new DataBase(hashMaker);
             dataBase.BuildDataBase(dataFolder);
-            dataBase.Save(dataBaseFile);
+            dataBase.SaveInBinary(dataBaseFile);
             if (shutDown)
                 Utility.ShutDown();
         }
 
-        static void Main1(string[] args)
+        static void Main(string[] args)
         {
             //BuildDataBase();
             //RunAutoTest(false);
@@ -178,7 +187,42 @@ Usage : Shazam Build | Test | Combine
             //QueryTest.Test(@"D:\Music\Avatar\DataBase.txt", @"D:\Music\孙燕姿《经典全纪录 主打精华版》[224kbps VBR]\fc-懂事.mp3", "09.懂事");
             //QueryTest.TestRandom(@"D:\Music\Avatar\DataBase.txt", @"D:\Music\孙燕姿《经典全纪录 主打精华版》[224kbps VBR]\09.懂事.伴奏.mp3", "09.懂事");
             //PlayMp3();
-            RunRecordAutoTest(false);
+            //RunRecordAutoTest(false);
+            //ConvertTextIndexToBinary();
+            ImprovedTest(
+                @"I:\all.index", @"I:\all.bin", @"I:\xxx.xxx"
+                //@"I:\ZhangYuSheng.index", @"I:\ZhangYuSheng.bin", @"I:\ZhangYuSheng.text"
+                );
+        }
+
+        static void ImprovedTest(string indexFile, string binaryFile, string newTextFile)
+        {
+            //DataBase.SimpleTest(binaryFile, new KeyPointHash(), true);
+            ImprovedDataBase.SimpleTest(binaryFile, new KeyPointHash(), true);
+            //DataBase dataBase = new DataBase(new KeyPointHash());
+            //dataBase.LoadFromBinary(binaryFile);
+            //dataBase.SaveInBinary(newBinaryFile);
+
+            //ImprovedDataBase dataBase = new ImprovedDataBase(new KeyPointHash());
+            //dataBase.Load(indexFile);
+            //dataBase.SaveInBinary(binaryFile);
+            //dataBase.LoadFromBinary(binaryFile);
+            //dataBase.Save(newTextFile);
+        }
+
+        static void ConvertTextIndexToBinary()
+        {
+            StreamReader sr = new StreamReader(@"I:\indexFiles.txt", Encoding.GetEncoding("GB2312"));
+
+            IHashMaker hashMaker = new KeyPointHash();
+
+            while (!sr.EndOfStream)
+            {
+                string inputFile = sr.ReadLine();
+                string outputFile = inputFile.Replace(".index", ".bin");
+
+                DataBase.ConvertIndexFileFromTextToBinary(inputFile, outputFile, hashMaker);
+            }
         }
 
         static void RunRecordAutoTest(bool shutDown)

@@ -243,5 +243,46 @@ namespace MusicIdentifier
 
             return result;
         }
+
+        public static double ComputeVolume(byte[] data, int frameSize)
+        {
+            if (data == null || data.Length == 0)
+                return 0;
+
+            if (frameSize > data.Length)
+                frameSize = data.Length;
+
+            double sum = 0;
+            for (int i = data.Length - frameSize; i < data.Length; i++ )
+                sum += data[i];
+
+            double mean = sum / frameSize;
+            sum = 0;
+            for (int i = data.Length - frameSize; i < data.Length; i++)
+            { 
+                double tmp = data[i] - mean;
+                sum += tmp * tmp;
+            }
+            double volume = 10 * Math.Log10(sum);
+
+            return volume;
+        }
+
+        public static void PrintVolumeToConsole(double value)
+        {
+            int length = (int)(value / 3);
+
+            Console.SetCursorPosition(0, Console.CursorTop);            
+            Console.Write("{0,2}", length);
+
+            ConsoleColor backColor = Console.BackgroundColor;
+            Console.BackgroundColor = ConsoleColor.Green;
+            for (int i = 0; i < length; i++ )
+                Console.Write(" ");
+
+            Console.BackgroundColor = backColor;
+            for (int i = length; i < 60; i++)
+                Console.Write(" ");
+        }
     }
 }

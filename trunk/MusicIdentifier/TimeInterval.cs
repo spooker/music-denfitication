@@ -5,14 +5,19 @@ using System.Text;
 
 namespace MusicIdentifier
 {
-    class TimeInterval
+    public class TimeInterval
     {
         private DateTime startTime;
         private DateTime endTime;
 
         public TimeInterval()
         {
-            startTime = DateTime.Now;    
+            Reset();   
+        }
+
+        public void Reset()
+        {
+            startTime = DateTime.Now;
         }
 
         public double GetDurationInSecond()

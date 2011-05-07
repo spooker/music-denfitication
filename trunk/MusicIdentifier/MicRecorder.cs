@@ -209,6 +209,7 @@ namespace MusicIdentifier
             lock (lockObj)
             {
                 audio.AddRange(capturedData);
+                Utility.PrintVolumeToConsole(Utility.ComputeVolume(capturedData, 256));
             }
         }
 

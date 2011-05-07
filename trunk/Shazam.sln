@@ -7,6 +7,22 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MusicIdentifier", "MusicIde
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestPlayer", "TestPlayer\TestPlayer.csproj", "{36838DB7-F143-4EB0-9AA4-AB9652B51F8E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MusicIdentifierTest", "MusicIdentifierTest\MusicIdentifierTest.csproj", "{0AB5D7F5-736A-4D5B-8E3B-750663FF7770}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{501526FB-8BEA-4F5A-8A22-ABAE18B9CA7A}"
+	ProjectSection(SolutionItems) = preProject
+		LocalTestRun.testrunconfig = LocalTestRun.testrunconfig
+		Shazam.vsmdi = Shazam.vsmdi
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Renamer", "Renamer\Renamer.csproj", "{F774F115-D995-46B1-AF93-1749E03AD4D3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "yeti.mmedia", "yeti.mmedia\yeti.mmedia.csproj", "{315EE7BF-EAE2-42C0-BFC6-CCA9160F3CFE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "yeti.wmfsdk", "yeti.wmfsdk\yeti.wmfsdk.csproj", "{FECB5BEB-AB05-454A-BB14-6A554E897274}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Exocortex.DSP.v1", "ExocortexDSP\Exocortex.DSP.v1.csproj", "{1904A41B-D1B8-40E5-ADBB-728DDCF7C816}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -25,6 +41,26 @@ Global
 		{36838DB7-F143-4EB0-9AA4-AB9652B51F8E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{36838DB7-F143-4EB0-9AA4-AB9652B51F8E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{36838DB7-F143-4EB0-9AA4-AB9652B51F8E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0AB5D7F5-736A-4D5B-8E3B-750663FF7770}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0AB5D7F5-736A-4D5B-8E3B-750663FF7770}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0AB5D7F5-736A-4D5B-8E3B-750663FF7770}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0AB5D7F5-736A-4D5B-8E3B-750663FF7770}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F774F115-D995-46B1-AF93-1749E03AD4D3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F774F115-D995-46B1-AF93-1749E03AD4D3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F774F115-D995-46B1-AF93-1749E03AD4D3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F774F115-D995-46B1-AF93-1749E03AD4D3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{315EE7BF-EAE2-42C0-BFC6-CCA9160F3CFE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{315EE7BF-EAE2-42C0-BFC6-CCA9160F3CFE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{315EE7BF-EAE2-42C0-BFC6-CCA9160F3CFE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{315EE7BF-EAE2-42C0-BFC6-CCA9160F3CFE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FECB5BEB-AB05-454A-BB14-6A554E897274}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FECB5BEB-AB05-454A-BB14-6A554E897274}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FECB5BEB-AB05-454A-BB14-6A554E897274}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FECB5BEB-AB05-454A-BB14-6A554E897274}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1904A41B-D1B8-40E5-ADBB-728DDCF7C816}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1904A41B-D1B8-40E5-ADBB-728DDCF7C816}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1904A41B-D1B8-40E5-ADBB-728DDCF7C816}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1904A41B-D1B8-40E5-ADBB-728DDCF7C816}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

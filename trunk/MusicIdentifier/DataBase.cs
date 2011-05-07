@@ -3,20 +3,23 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.IO;
-using Exocortex.DSP;
 using System.Diagnostics;
 using System.Drawing;
+using Exocortex.DSP;
 
 namespace MusicIdentifier
 {
     public class DataBase
     {
+        private static int BINARY_HEADER = -1;
+
         private List<string> songNames = new List<string>();
         private Dictionary<long, List<DataPoint>> hashMap = new Dictionary<long, List<DataPoint>>();
         private HashSet<string> songNameSet = new HashSet<string>();
+        
         IHashMaker hashMaker;
 
-        public bool CheckDuplicate { set; get; }
+        public bool CheckDuplicate { set; get; }        
 
         public DataBase(IHashMaker hasher)
         {
@@ -83,28 +86,45 @@ namespace MusicIdentifier
         //    return FFT(audio, 0, audio.Length, chunkSize);
         //}
 
+        private static List<Complex[]> cache = new List<Complex[]>();
         public static Complex[][] FFT(byte[] audio, int start, int length, int chunkSize)
-        {
-            int totalSize = length;
+        {        
+            int totalSize = length;            
             int amountPossible = totalSize / chunkSize;
 
             //When turning into frequency domain we'll need complex numbers:
             Complex[][] results = new Complex[amountPossible][];
+
             //For all the chunks:
+            double totalFFTTime = 0;
             for (int i = 0; i < amountPossible; i++)
             {
-                Complex[] complex = new Complex[chunkSize];
+                Complex[] complex = null;
+                if (i >= cache.Count)
+                {
+                    complex = new Complex[chunkSize];
+                    cache.Add(complex);
+                }
+                else
+                    complex = cache[i];
+
                 for (int j = 0; j < chunkSize; j++)
                 {
                     //Put the time domain data into a complex number with imaginary part as 0:
-                    complex[j] = new Complex(audio[start++], 0);
+                    if(complex[j] == null)
+                        complex[j] = new Complex(audio[start++], 0);
+                    else
+                    {
+                        complex[j].Re = audio[start++];
+                        complex[j].Im = 0;
+                    }
                 }
                 
                 //Perform FFT analysis on the chunk:
                 Fourier.FFT(complex, complex.Length, FourierDirection.Forward);
                 results[i] = complex;
-
             }
+
             return results;
         }
         public string GetNameByID(int id)
@@ -160,40 +180,146 @@ namespace MusicIdentifier
                     hashMap.Add(hash, pointList);
                 }
 
-                pointList.Add(new DataPoint(i, songID));
+                pointList.Add(new DataPoint((short)i, (short)songID));
             }
         }
-        public void Save(string fileName)
-        {
-            using (StreamWriter sw = new StreamWriter(fileName, false))
-            {
-                sw.WriteLine(songNames.Count);
-                foreach (string name in songNames)
-                {
-                    sw.WriteLine(name);
-                }
 
-                sw.WriteLine(hashMap.Count);
-                Dictionary<long, List<DataPoint>>.Enumerator en = hashMap.GetEnumerator();
-                while (en.MoveNext())
-                {
-                    KeyValuePair<long, List<DataPoint>> current = en.Current;
-                    sw.Write(current.Key);
-                    foreach (DataPoint dataPoint in current.Value)
-                    {
-                        sw.Write(string.Format("\t{0},{1}", dataPoint.Time, dataPoint.SongID));
-                    }
-                    sw.WriteLine();
-                }
-                sw.Flush();
-            }
-        }
-        public void Load(string fileName)
+        public void SaveInBinary(string fileName)
         {
-            Console.WriteLine("Loading data base from file: {0} ...", fileName);
-            TimeInterval loadTimeInterval = new TimeInterval();
+            Console.WriteLine("Saving to binary file: {0}", fileName);
             try
             {
+                TimeInterval ti = new TimeInterval();
+                using (FileStream fs = new FileStream(fileName, FileMode.OpenOrCreate))
+                {
+                    BinaryWriter bw = new BinaryWriter(fs);
+
+                    bw.Write(BINARY_HEADER);
+                    bw.Write(songNames.Count);
+                    foreach (string name in songNames)
+                    {
+                        bw.Write(name);
+                    }
+
+                    bw.Write(hashMap.Count);
+                    Dictionary<long, List<DataPoint>>.Enumerator en = hashMap.GetEnumerator();
+                    while (en.MoveNext())
+                    {
+                        KeyValuePair<long, List<DataPoint>> current = en.Current;
+                        bw.Write(current.Key);
+                        bw.Write(current.Value.Count);
+                        foreach (DataPoint dataPoint in current.Value)
+                        {
+                            bw.Write(dataPoint.Time);
+                            bw.Write(dataPoint.SongID);
+                        }
+                    }
+                    bw.Flush();
+                }
+                Console.WriteLine("Done. {0}s", ti.GetDurationInSecond());
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
+        }
+
+        public void Save(string fileName)
+        {
+            Console.WriteLine("Saving to text file: {0}", fileName);
+            try
+            {
+                TimeInterval ti = new TimeInterval();
+                using (StreamWriter sw = new StreamWriter(fileName, false))
+                {
+                    sw.WriteLine(songNames.Count);
+                    foreach (string name in songNames)
+                    {
+                        sw.WriteLine(name);
+                    }
+
+                    sw.WriteLine(hashMap.Count);
+                    Dictionary<long, List<DataPoint>>.Enumerator en = hashMap.GetEnumerator();
+                    while (en.MoveNext())
+                    {
+                        KeyValuePair<long, List<DataPoint>> current = en.Current;
+                        sw.Write(current.Key);
+                        foreach (DataPoint dataPoint in current.Value)
+                        {
+                            sw.Write(string.Format("\t{0},{1}", dataPoint.Time, dataPoint.SongID));
+                        }
+                        sw.WriteLine();
+                    }
+                    sw.Flush();
+                }
+                Console.WriteLine("Done. {0}s", ti.GetDurationInSecond());
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
+        }
+
+        public void LoadFromBinary(string fileName)
+        {
+            Console.WriteLine("Loading data base from binary file: {0} ...", fileName);            
+            try
+            {
+                TimeInterval loadTimeInterval = new TimeInterval();
+                using (FileStream fr = new FileStream(fileName, FileMode.Open))
+                {
+                    BinaryReader br = new BinaryReader(fr);
+                    songNames.Clear();
+
+                    int header = br.ReadInt32();
+                    if (header != BINARY_HEADER)
+                    {
+                        throw new InvalidDataException("Invalid binary index file!");
+                    }
+
+                    int nameCount = br.ReadInt32();
+                    for (int i = 0; i < nameCount; i++)
+                    {
+                        string name = br.ReadString();
+                        songNames.Add(name);
+                        if (CheckDuplicate)
+                            songNameSet.Add(name);
+                    }
+
+                    hashMap.Clear();
+                    int hashCount = br.ReadInt32();
+                    for (int i = 0; i < hashCount; i++)
+                    {
+                        long key = br.ReadInt64();
+                        int count = br.ReadInt32();
+
+                        List<DataPoint> pointList = new List<DataPoint>(count);
+                        for (int j = 0; j < count; j++)
+                        {
+                            short time = br.ReadInt16();
+                            short songID = br.ReadInt16();
+                            DataPoint dataPoint = new DataPoint(time, songID);
+                            pointList.Add(dataPoint);
+                        }
+
+                        hashMap.Add(key, pointList);
+                    }
+                }
+                Console.WriteLine("Done! {0}s", loadTimeInterval.GetDurationInSecond());
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+                Console.WriteLine(e.StackTrace);
+            }
+        }
+
+        public void Load(string fileName)
+        {
+            Console.WriteLine("Loading data base from file: {0} ...", fileName);            
+            try
+            {
+                TimeInterval loadTimeInterval = new TimeInterval();
                 using (StreamReader sr = new StreamReader(fileName))
                 {
                     songNames.Clear();
@@ -218,8 +344,8 @@ namespace MusicIdentifier
                         for (int j = 1; j < items.Length; j++)
                         {
                             string[] values = items[j].Split(',');
-                            int time = int.Parse(values[0]);
-                            int songID = int.Parse(values[1]);
+                            short time = short.Parse(values[0]);
+                            short songID = short.Parse(values[1]);
                             DataPoint dataPoint = new DataPoint(time, songID);
                             pointList.Add(dataPoint);
                         }
@@ -302,7 +428,6 @@ namespace MusicIdentifier
                     }
                 }
             }
-
             return results;
         }
         public void GetBestHitByHitCount(Dictionary<int, List<int>> results, bool bPrintCandidates)
@@ -350,11 +475,16 @@ namespace MusicIdentifier
             return bestID;
         }
 
+        public bool UseFilter { set; get; }
         public List<KeyValuePair<int, int>> SortHitBySpanMatch(Dictionary<int, List<int>> results)
         {
             List<KeyValuePair<int, int>> countID = new List<KeyValuePair<int, int>>();
+            IEnumerable<KeyValuePair<int, List<int>>> filteredResults;
+            int filteredCount = 0;
             foreach (KeyValuePair<int, List<int>> keyValuePair in results)
             {
+                if (UseFilter && keyValuePair.Value.Count < 10)
+                    continue;
                 keyValuePair.Value.Sort();
                 List<KeyValuePair<int, int>> countSpan = GetBestTwoSpan(keyValuePair.Value);
                 if (countSpan.Count >= 2 && Math.Abs(countSpan[0].Value - countSpan[1].Value) < 10)
@@ -365,7 +495,10 @@ namespace MusicIdentifier
                 {
                     countID.Add(new KeyValuePair<int, int>(countSpan[0].Key, keyValuePair.Key));
                 }
+                filteredCount++;
             }
+            if (UseFilter)
+                Console.WriteLine("Count {0}\t Filtered Count {1}", results.Count, filteredCount);
 
             countID.Sort(
                 delegate(KeyValuePair<int, int> firstPair,
@@ -438,9 +571,23 @@ namespace MusicIdentifier
                 count++;
             }
         }
+
+        private void Swap(ref int x, ref int y)
+        {
+            int tmp = x;
+            x = y;
+            y = tmp;
+        }
+
         private List<KeyValuePair<int, int>> GetBestTwoSpan(List<int> timeSpans)
         {
             List<KeyValuePair<int, int>> countSpan = new List<KeyValuePair<int, int>>();
+            int firstKey, firstValue;
+            int secondKey, secondValue;
+            firstKey = secondKey = 0;
+            firstValue = 100;
+            secondValue = -100;
+
             int count = 0;
             int value = int.MaxValue;
             foreach (int span in timeSpans)
@@ -460,21 +607,50 @@ namespace MusicIdentifier
                     }
                     else
                     {
-                        countSpan.Add(new KeyValuePair<int, int>(count, value));
+                        if (count > firstKey)
+                        {
+                            Swap(ref firstKey, ref secondKey);
+                            Swap(ref firstValue, ref secondValue);
+
+                            firstKey = count;
+                            firstValue = value;
+                        }
+                        else if(count > secondKey)
+                        {
+                            secondKey = count;
+                            secondValue = value;
+                        }
+
+                        //countSpan.Add(new KeyValuePair<int, int>(count, value));
                         count = 1;
                         value = span;
                     }
                 }
             }
-            countSpan.Add(new KeyValuePair<int, int>(count, value));
+            //countSpan.Add(new KeyValuePair<int, int>(count, value));
+            if (count > firstKey)
+            {
+                Swap(ref firstKey, ref secondKey);
+                Swap(ref firstValue, ref secondValue);
 
-            countSpan.Sort(
-                delegate(KeyValuePair<int, int> firstPair,
-                KeyValuePair<int, int> secondPair)
-                {
-                    return secondPair.Key.CompareTo(firstPair.Key);
-                }
-            );
+                firstKey = count;
+                firstValue = value;
+            }
+            else if (count > secondKey)
+            {
+                secondKey = count;
+                secondValue = value;
+            }
+
+            //countSpan.Sort(
+            //    delegate(KeyValuePair<int, int> firstPair,
+            //    KeyValuePair<int, int> secondPair)
+            //    {
+            //        return secondPair.Key.CompareTo(firstPair.Key);
+            //    }
+            //);
+            countSpan.Add(new KeyValuePair<int, int>(firstKey, firstValue));
+            countSpan.Add(new KeyValuePair<int, int>(secondKey, secondValue));
                                     
             return countSpan;
         }
@@ -687,10 +863,14 @@ namespace MusicIdentifier
             }
         }
 
-        public static void SimpleTest(string dataFolder, IHashMaker hashMaker, bool bQuiet)
+        public static void SimpleTest(string indexFile, IHashMaker hashMaker, bool bQuiet)
         {
+            bool bTextFile = IsTextFile(indexFile);
             DataBase dataBase = new DataBase(hashMaker);
-            dataBase.Load(dataFolder);
+            if (bTextFile)
+                dataBase.Load(indexFile);
+            else
+                dataBase.LoadFromBinary(indexFile);
             dataBase.Quiet = bQuiet;
             int seconds = 10;
 
@@ -709,12 +889,11 @@ namespace MusicIdentifier
                 recorder.RecStart();
 
                 audio = recorder.GetAudioData();
-                //Console.WriteLine("Length of audio data is {0}.", audio.Length);
-
-                TimeInterval timeInterval = new TimeInterval();
+                Console.WriteLine("Matching the song...");
                 
+                dataBase.UseFilter = false;
+                TimeInterval timeInterval = new TimeInterval();
                 int id = dataBase.GetBestHit(audio, 16);
-
                 double intervalInSecond = timeInterval.GetDurationInSecond();
 
                 Console.WriteLine("--------------------");
@@ -724,6 +903,19 @@ namespace MusicIdentifier
                 else
                     Console.WriteLine(dataBase.GetNameByID(id));
                 Console.WriteLine("--------------------");
+
+                //dataBase.UseFilter = true;
+                //timeInterval.Reset();
+                //id = dataBase.GetBestHit(audio, 16);
+                //intervalInSecond = timeInterval.GetDurationInSecond();
+
+                //Console.WriteLine("--------------------");
+                //Console.Write("Final Match ({0}s):\t", intervalInSecond);
+                //if (id < 0)
+                //    Console.WriteLine("No match!");
+                //else
+                //    Console.WriteLine(dataBase.GetNameByID(id));
+                //Console.WriteLine("--------------------");
             }
         }
 
@@ -732,7 +924,7 @@ namespace MusicIdentifier
             if(other == null)
                 return;
 
-            int count = songNames.Count;
+            short count = (short)songNames.Count;
             songNames.AddRange(other.songNames);
 
             foreach (KeyValuePair<long, List<DataPoint>> keyValue in other.hashMap)
@@ -757,6 +949,36 @@ namespace MusicIdentifier
         {
             first.Combine(second);
             return first;
+        }
+
+        public static bool IsTextFile(string fileName)
+        {
+            try
+            {
+                using(FileStream fs = new FileStream(fileName, FileMode.Open, FileAccess.Read))
+                {
+                    using(BinaryReader br = new BinaryReader(fs))
+                    {
+                        int header = br.ReadInt32();
+                        if (header != BINARY_HEADER)
+                            return true;
+                        else
+                            return false;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                throw ex;
+            }
+        }
+        
+        public static void ConvertIndexFileFromTextToBinary(string textFile, string binaryFile, IHashMaker hashMaker)
+        {
+            DataBase dataBase = new DataBase(hashMaker);
+            dataBase.Load(textFile);
+            dataBase.SaveInBinary(binaryFile);
         }
     }
 }

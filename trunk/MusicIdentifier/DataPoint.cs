@@ -7,10 +7,10 @@ namespace MusicIdentifier
 {
     public class DataPoint
     {
-        public int Time { set; get; }
-        public int SongID { set; get; }
+        public short Time { set; get; }
+        public short SongID { set; get; }
 
-        public DataPoint(int time, int songID)
+        public DataPoint(short time, short songID)
         {
             Time = time;
             SongID = songID;
