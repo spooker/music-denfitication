@@ -62,7 +62,7 @@ namespace MusicIdentifier
         }
         public int ChunkSize
         {
-            get { return 4096; }
+            get { return Harvester.CHUNK_SIZE; }
         }
     }
 }
