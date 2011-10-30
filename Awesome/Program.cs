@@ -10,7 +10,7 @@ namespace Test
 {
     class Program
     {
-        static void Main1(string[] args)
+        static void Main(string[] args)
         {
             if (args.Length < 2)
             {
@@ -171,7 +171,7 @@ Usage : Shazam Build | Test | Combine
                 Utility.ShutDown();
         }
 
-        static void Main(string[] args)
+        static void Main1(string[] args)
         {
             //BuildDataBase();
             //RunAutoTest(false);

@@ -38,6 +38,7 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\lib\Exocortex.DSP.v1.dll</HintPath>
     </Reference>
+    <Reference Include="fftwlib, Version=1.0.2448.42408, Culture=neutral" />
     <Reference Include="Microsoft.DirectX, Version=1.0.2902.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\lib\Microsoft.DirectX.dll</HintPath>
@@ -65,6 +66,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="FFTW.cs" />
     <Compile Include="ImprovedDataBase.cs" />
     <Compile Include="Mp3Player.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
