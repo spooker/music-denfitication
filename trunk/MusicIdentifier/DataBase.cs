@@ -6,6 +6,8 @@ using System.IO;
 using System.Diagnostics;
 using System.Drawing;
 using Exocortex.DSP;
+using fftwlib;
+using System.Runtime.InteropServices;
 
 namespace MusicIdentifier
 {
@@ -77,7 +79,11 @@ namespace MusicIdentifier
 
         private long[] GetAudioHash(byte[] audio, int start, int length)
         {
-            Complex[][] results = FFT(audio, start, length, hashMaker.ChunkSize);
+            Complex[][] results = null;
+            if(UseFFTW)
+                results = FFT_test(audio, start, length, hashMaker.ChunkSize);
+            else
+                results = FFT(audio, start, length, hashMaker.ChunkSize);
             return hashMaker.GetHash(results);
         }
 
@@ -96,7 +102,6 @@ namespace MusicIdentifier
             Complex[][] results = new Complex[amountPossible][];
 
             //For all the chunks:
-            double totalFFTTime = 0;
             for (int i = 0; i < amountPossible; i++)
             {
                 Complex[] complex = null;
@@ -127,6 +132,67 @@ namespace MusicIdentifier
 
             return results;
         }
+
+        public bool UseFFTW { set; get; }
+        public static Complex[][] FFT_test(byte[] audio, int start, int length, int chunkSize)
+        {
+            int totalSize = length;
+            int amountPossible = totalSize / chunkSize;
+
+            //When turning into frequency domain we'll need complex numbers:
+            Complex[][] results = new Complex[amountPossible][];
+            double[] tmp = new double[chunkSize * 2];
+
+            //For all the chunks:
+            double totalFFTTime = 0;
+            for (int i = 0; i < amountPossible; i++)
+            {                
+                Complex[] complex = null;
+                if (i >= cache.Count)
+                {
+                    complex = new Complex[chunkSize];
+                    cache.Add(complex);
+                }
+                else
+                    complex = cache[i];
+
+                for (int j = 0; j < chunkSize; j++)
+                {
+                    //Put the time domain data into a complex number with imaginary part as 0:
+                    if (complex[j] == null)
+                        complex[j] = new Complex();
+                }
+
+                for (int j = 0; j < chunkSize; j++)
+                {
+                    tmp[j * 2] = audio[start++];
+                    tmp[j * 2 + 1] = 0;
+                }
+
+                int len = chunkSize * 2 * sizeof(double);
+                IntPtr inData = fftw.malloc(len);
+                IntPtr outData = fftw.malloc(len);
+                Marshal.Copy(tmp, 0, inData, tmp.Length);
+                IntPtr fplan = fftw.dft_1d(chunkSize, inData, outData, fftw_direction.Forward, fftw_flags.Estimate);
+                fftw.execute(fplan);
+                fftw.destroy_plan(fplan);
+                Marshal.Copy(outData, tmp, 0, tmp.Length);
+                fftw.free(inData);
+                fftw.free(outData);
+
+                for (int j = 0; j < chunkSize; j++)
+                {
+                    complex[j].Re = tmp[j * 2];
+                    complex[j].Im = tmp[j * 2 + 1];
+                }
+
+                //Perform FFT analysis on the chunk:
+                results[i] = complex;
+            }
+
+            return results;
+        }
+
         public string GetNameByID(int id)
         {
             if (id < 0 || id >= songNames.Count)
@@ -476,6 +542,7 @@ namespace MusicIdentifier
         }
 
         public bool UseFilter { set; get; }
+        public bool UseSort { set; get; }
         public List<KeyValuePair<int, int>> SortHitBySpanMatch(Dictionary<int, List<int>> results)
         {
             List<KeyValuePair<int, int>> countID = new List<KeyValuePair<int, int>>();
@@ -485,7 +552,8 @@ namespace MusicIdentifier
             {
                 if (UseFilter && keyValuePair.Value.Count < 10)
                     continue;
-                keyValuePair.Value.Sort();
+                if(UseSort)
+                    keyValuePair.Value.Sort();
                 List<KeyValuePair<int, int>> countSpan = GetBestTwoSpan(keyValuePair.Value);
                 if (countSpan.Count >= 2 && Math.Abs(countSpan[0].Value - countSpan[1].Value) < 10)
                 {
@@ -889,20 +957,12 @@ namespace MusicIdentifier
                 recorder.RecStart();
 
                 audio = recorder.GetAudioData();
-                Console.WriteLine("Matching the song...");
-                
-                dataBase.UseFilter = false;
-                TimeInterval timeInterval = new TimeInterval();
-                int id = dataBase.GetBestHit(audio, 16);
-                double intervalInSecond = timeInterval.GetDurationInSecond();
-
-                Console.WriteLine("--------------------");
-                Console.Write("Final Match ({0}s):\t", intervalInSecond);
-                if (id < 0)
-                    Console.WriteLine("No match!");
-                else
-                    Console.WriteLine(dataBase.GetNameByID(id));
-                Console.WriteLine("--------------------");
+                dataBase.UseFFTW = false;
+                Indexing(dataBase, audio);
+                dataBase.UseFFTW = true;
+                Indexing(dataBase, audio);
+                dataBase.UseSort = true;
+                Indexing(dataBase, audio);
 
                 //dataBase.UseFilter = true;
                 //timeInterval.Reset();
@@ -917,6 +977,23 @@ namespace MusicIdentifier
                 //    Console.WriteLine(dataBase.GetNameByID(id));
                 //Console.WriteLine("--------------------");
             }
+        }
+
+        private static void Indexing(DataBase dataBase, byte[] audio)
+        {
+            Console.WriteLine("Matching the song...");
+            dataBase.UseFilter = false;
+            TimeInterval timeInterval = new TimeInterval();
+            int id = dataBase.GetBestHit(audio, 16);
+            double intervalInSecond = timeInterval.GetDurationInSecond();
+
+            Console.WriteLine("--------------------");
+            Console.Write("Final Match ({0}s):\t", intervalInSecond);
+            if (id < 0)
+                Console.WriteLine("No match!");
+            else
+                Console.WriteLine(dataBase.GetNameByID(id));
+            Console.WriteLine("--------------------");
         }
 
         public void Combine(DataBase other)
