@@ -107,7 +107,7 @@ local machine. Then you can play any of them, this program can record
 10 seconds sound through the mic on your machin, then tells you what's
 the name of that song. Enjoy it! contact:<sliveysun@gmail.com>
 
-Usage : Shazam Build | Test | Combine
+Usage : Build | Test | Combine | Append | Convert
     Build MusicFolder IndexFile
         MusicFolder:    search all mp3 files under MusicFolder and build index;
         IndexFile:      the index are saved to IndexFile;
