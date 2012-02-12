@@ -9,6 +9,7 @@ namespace MusicIdentifier
     public interface IHashMaker
     {
         long[] GetHash(Complex[][] data);
-        int ChunkSize { get; }
+        int ChunkSize { get; set; }
+        int StepSize { get; set; }
     }
 }
