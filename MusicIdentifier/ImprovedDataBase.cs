@@ -494,7 +494,7 @@ namespace MusicIdentifier
         public List<KeyValuePair<int, int>> SortHitBySpanMatch(Dictionary<int, List<int>> results)
         {
             List<KeyValuePair<int, int>> countID = new List<KeyValuePair<int, int>>();
-            IEnumerable<KeyValuePair<int, List<int>>> filteredResults;
+            //IEnumerable<KeyValuePair<int, List<int>>> filteredResults;
             //filteredResults = UseFilter ? results.Where(result => result.Value.Count > 5)
             //    : results.Where(result => result.Value.Count > 0);
             int filteredCount = 0;
@@ -792,7 +792,7 @@ namespace MusicIdentifier
 
                 if (!bSuccess)
                 {
-                    int debug = 2;
+                    //int debug = 2;
                 }
                 startIndex += chunkSize;
             }
@@ -884,8 +884,10 @@ namespace MusicIdentifier
         {
             bool bTextFile = IsTextFile(indexFile);
             ImprovedDataBase dataBase = new ImprovedDataBase(hashMaker);
-            if (bTextFile) ;
-            //dataBase.Load(indexFile);
+            if (bTextFile)
+            {
+                //dataBase.Load(indexFile);
+            }
             else
                 dataBase.LoadFromBinary(indexFile);
             dataBase.Quiet = bQuiet;

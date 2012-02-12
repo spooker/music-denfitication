@@ -12,6 +12,13 @@ namespace MusicIdentifier
         private static int LOWER_LIMIT = 0;
         private static int UPPER_LIMIT = 2000;
         private static int[] RANGE = new int[] { 80, 120, 180, 300, 2000 };
+        public static int STEP_SIZE = 2048;
+
+        public LongHash()
+        {
+            ChunkSize = CHUNK_SIZE;
+            StepSize = STEP_SIZE;
+        }
 
         private int[] GetKeyPoints(Complex[] result)
         {
@@ -59,10 +66,9 @@ namespace MusicIdentifier
 
             return hashes;
         }
-        public int ChunkSize
-        {
-            get { return CHUNK_SIZE; }
-        }
+        public int ChunkSize { get; set; }
+
+        public int StepSize { get; set; }
     }
     
 }

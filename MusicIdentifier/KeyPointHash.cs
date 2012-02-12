@@ -13,10 +13,17 @@ namespace MusicIdentifier
         public static int LOWER_LIMIT = 40;
         public static int UPPER_LIMIT = 300;
         public static int[] RANGE = new int[] {80, 120, 180, 300};
+        public static int STEP_SIZE = 2048;
     }
 
     public class KeyPointHash : IHashMaker
-    { 
+    {
+        public KeyPointHash() 
+        {
+            ChunkSize = Harvester.CHUNK_SIZE;
+            StepSize = Harvester.STEP_SIZE;
+        }
+
         private int[] GetKeyPoints(Complex[] result)
         {
             int[] recordPoints = new int[] { 0, 0, 0, 0 };
@@ -60,9 +67,7 @@ namespace MusicIdentifier
 
             return hashes;
         }
-        public int ChunkSize
-        {
-            get { return Harvester.CHUNK_SIZE; }
-        }
+        public int ChunkSize { get; set; }
+        public int StepSize { get; set; }
     }
 }
